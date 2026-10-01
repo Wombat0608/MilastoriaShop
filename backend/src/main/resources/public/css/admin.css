@@ -1,0 +1,200 @@
+/* Админка — минимальный отдельный chrome поверх переменных из styles.css.
+   Публичный хедер/футер/маркиз сюда специально не тащим: это рабочий
+   инструмент, а не витрина. */
+
+.admin-body {
+  background: var(--paper);
+  min-height: 100vh;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.admin-header .logo img {
+  height: 18px;
+  width: auto;
+}
+
+.admin-main {
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.admin-error {
+  color: #a3342a;
+  background: #fbeceb;
+  border: 1px solid #eecac7;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ——— логин ——— */
+
+.admin-login {
+  max-width: 360px;
+  margin: 3rem auto 0;
+}
+
+.admin-form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.admin-form label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.admin-form input {
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  font-size: 1rem;
+  min-height: 48px;
+}
+
+.admin-form input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+/* ——— список лотов ——— */
+
+.admin-lot-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-lot-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  min-height: 44px;
+}
+
+.admin-status {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.admin-status.is-published {
+  color: var(--gold);
+}
+
+/* ——— сетка фото лота ——— */
+
+.admin-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.85rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.admin-photo-grid figure {
+  position: relative;
+  margin: 0;
+}
+
+.admin-photo-grid img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: var(--paper-dim);
+}
+
+.admin-photo-grid form {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+}
+
+.admin-photo-delete {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(24, 18, 12, 0.68);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ——— загрузка: крупная тач-зона под iPad (≥44pt) ——— */
+
+.upload-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  border: 2px dashed var(--line);
+  background: var(--white);
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.upload-picker input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ——— полноэкранный кроп ——— */
+
+.crop-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+/* [hidden] в UA-стилях — низкий приоритет, наш .crop-stage{display:flex}
+   его перебивает. Явно возвращаем display:none, когда атрибут есть. */
+.crop-stage[hidden] {
+  display: none;
+}
+
+.crop-stage__image-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.crop-stage__image-wrap img {
+  display: block;
+  max-width: 100%;
+}
+
+.crop-stage__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1.25rem;
+  background: var(--ink);
+}
+
+.crop-stage__actions .btn {
+  min-width: 160px;
+  min-height: 52px;
+}

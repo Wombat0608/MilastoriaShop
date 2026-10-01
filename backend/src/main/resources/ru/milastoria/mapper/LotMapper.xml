@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ru.milastoria.mapper.LotMapper">
+
+    <select id="findAll" resultType="ru.milastoria.domain.Lot">
+        SELECT id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+        FROM lots
+        ORDER BY sort
+    </select>
+
+    <select id="findFeatured" resultType="ru.milastoria.domain.Lot">
+        SELECT id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+        FROM lots
+        WHERE status = 'published' AND featured = 1
+        ORDER BY sort
+        LIMIT #{limit}
+    </select>
+
+    <select id="findBySlug" resultType="ru.milastoria.domain.Lot">
+        SELECT id, slug, title, category_id, annotation, seo_text, meta_title, meta_description,
+               occasion, year, fabric_notes, client_name, featured, status, sort
+        FROM lots
+        WHERE slug = #{slug}
+    </select>
+
+    <select id="findById" resultType="ru.milastoria.domain.Lot">
+        SELECT id, slug, title, category_id, annotation, seo_text, meta_title, meta_description,
+               occasion, year, fabric_notes, client_name, featured, status, sort
+        FROM lots
+        WHERE id = #{id}
+    </select>
+
+    <!--
+      Каждый фильтр — самостоятельный <if>: любой из параметров может
+      быть null, тогда его условие просто не попадает в WHERE. Это
+      обычный SQL с динамической сборкой строки, ничего не генерируется
+      по имени метода, как в Spring Data JPA.
+    -->
+    <select id="findPublished" resultType="ru.milastoria.domain.Lot">
+        SELECT l.id, l.slug, l.title, l.category_id, l.annotation, l.occasion, l.year,
+               l.featured, l.status, l.sort
+        FROM lots l
+        WHERE l.status = 'published'
+        <if test="categorySlug != null">
+            AND l.category_id = (SELECT id FROM categories WHERE slug = #{categorySlug})
+        </if>
+        <if test="tag != null">
+            AND l.id IN (
+                SELECT lt.lot_id FROM lot_tags lt
+                JOIN tags t ON t.id = lt.tag_id
+                WHERE t.name = #{tag}
+            )
+        </if>
+        <if test="query != null">
+            AND (
+                l.title LIKE '%' || #{query} || '%'
+                OR l.annotation LIKE '%' || #{query} || '%'
+                OR l.seo_text LIKE '%' || #{query} || '%'
+            )
+        </if>
+        ORDER BY l.sort
+    </select>
+
+    <select id="findRelated" resultType="ru.milastoria.domain.Lot">
+        SELECT id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+        FROM lots
+        WHERE status = 'published' AND category_id = #{categoryId} AND id != #{excludeId}
+        ORDER BY sort
+        LIMIT #{limit}
+    </select>
+
+    <select id="countPublishedByCategory" resultType="int">
+        SELECT COUNT(*) FROM lots WHERE status = 'published' AND category_id = #{categoryId}
+    </select>
+
+    <select id="findImagesByLotId" resultType="ru.milastoria.domain.LotImage">
+        SELECT id, lot_id, path_thumb, path_full, alt, caption, sort
+        FROM lot_images
+        WHERE lot_id = #{lotId}
+        ORDER BY sort
+    </select>
+
+    <select id="findImageById" resultType="ru.milastoria.domain.LotImage">
+        SELECT id, lot_id, path_thumb, path_full, alt, caption, sort
+        FROM lot_images
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insertImage" parameterType="ru.milastoria.domain.LotImage">
+        INSERT INTO lot_images (lot_id, path_thumb, path_full, alt, caption, sort)
+        VALUES (#{lotId}, #{pathThumb}, #{pathFull}, #{alt}, #{caption}, #{sort})
+    </insert>
+
+    <delete id="deleteImageById">
+        DELETE FROM lot_images WHERE id = #{id}
+    </delete>
+
+    <select id="findVideosByLotId" resultType="ru.milastoria.domain.LotVideo">
+        SELECT id, lot_id, path, poster_path, caption
+        FROM lot_videos
+        WHERE lot_id = #{lotId}
+    </select>
+
+    <select id="findTagNamesByLotId" resultType="string">
+        SELECT t.name
+        FROM tags t
+        JOIN lot_tags lt ON lt.tag_id = t.id
+        WHERE lt.lot_id = #{lotId}
+        ORDER BY t.name
+    </select>
+
+</mapper>

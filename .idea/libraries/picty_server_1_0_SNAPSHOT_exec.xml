@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="picty-server-1.0-SNAPSHOT-exec">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/picty-app/picty-server-1.0-SNAPSHOT-exec.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

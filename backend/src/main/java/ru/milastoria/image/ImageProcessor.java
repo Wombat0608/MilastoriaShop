@@ -38,28 +38,54 @@ public class ImageProcessor {
         this.watermarkFile = watermarkFile;
     }
 
+    /** Путь к watermark.png на диске — для превью в кропе админки. */
+    public Path watermarkFile() {
+        return watermarkFile;
+    }
+
     /**
      * Рендерит обе версии (full + thumb) из одного оригинала и одного
      * прямоугольника кропа.
      */
     public void renderVariants(Path source, CropRect crop, Path outFull, Path outThumb)
             throws IOException, InterruptedException {
-        render(source, crop, FULL, outFull);
-        render(source, crop, THUMB, outThumb);
+        render(source, crop, FULL, outFull, null);
+        render(source, crop, THUMB, outThumb, null);
+    }
+
+    public void renderVariants(Path source, CropRect crop, Path outFull, Path outThumb, WatermarkPlacement wm)
+            throws IOException, InterruptedException {
+        render(source, crop, FULL, outFull, wm);
+        render(source, crop, THUMB, outThumb, wm);
     }
 
     public void render(Path source, CropRect crop, Variant variant, Path out)
             throws IOException, InterruptedException {
-        Files.createDirectories(out.getParent());
-        run(buildCommand(source, crop, variant, out));
+        render(source, crop, variant, out, null);
     }
 
-    private List<String> buildCommand(Path source, CropRect crop, Variant variant, Path out) {
+    public void render(Path source, CropRect crop, Variant variant, Path out, WatermarkPlacement wm)
+            throws IOException, InterruptedException {
+        Files.createDirectories(out.getParent());
+        run(buildCommand(source, crop, variant, out, wm, true));
+    }
+
+    /** Кроп/ресайз без водяного знака (обложки разделов). */
+    public void renderPlain(Path source, CropRect crop, Variant variant, Path out)
+            throws IOException, InterruptedException {
+        Files.createDirectories(out.getParent());
+        run(buildCommand(source, crop, variant, out, null, false));
+    }
+
+    private List<String> buildCommand(Path source, CropRect crop, Variant variant, Path out,
+                                      WatermarkPlacement wm, boolean withWatermark) {
         List<String> cmd = new ArrayList<>();
         cmd.add(convertBinary);
         cmd.add(source.toString());
         cmd.add("-auto-orient");
 
+        int cropW = crop != null ? crop.width() : 0;
+        int cropH = crop != null ? crop.height() : 0;
         if (crop != null) {
             cmd.add("-crop");
             cmd.add(crop.width() + "x" + crop.height() + "+" + crop.x() + "+" + crop.y());
@@ -78,15 +104,62 @@ public class ImageProcessor {
         cmd.add("-quality");
         cmd.add(String.valueOf(variant.jpegQuality()));
 
+        if (!withWatermark) {
+            cmd.add(out.toString());
+            return cmd;
+        }
+
+        WatermarkPlacement placement = wm != null ? wm
+                : WatermarkPlacement.defaults(
+                        variant.watermarkWidth() / (double) variant.maxEdge(),
+                        variant.watermarkMargin() / (double) variant.maxEdge());
+
+        // размер выхода после resize (без увеличения) — для пикселей watermark
+        int outW;
+        int outH;
+        if (crop != null && cropW > 0 && cropH > 0) {
+            double scale = Math.min(1.0, variant.maxEdge() / (double) Math.max(cropW, cropH));
+            outW = Math.max(1, (int) Math.round(cropW * scale));
+            outH = Math.max(1, (int) Math.round(cropH * scale));
+        } else {
+            outW = variant.maxEdge();
+            outH = variant.maxEdge();
+        }
+
+        int wmPx = Math.max(16, (int) Math.round(placement.widthFrac() * outW));
         cmd.add("(");
         cmd.add(watermarkFile.toString());
         cmd.add("-resize");
-        cmd.add(variant.watermarkWidth() + "x");
+        cmd.add(wmPx + "x");
+        // прозрачность: multiply по альфе (1.0 = без изменений)
+        double opacity = placement.opacity();
+        if (opacity < 0.999) {
+            cmd.add("-alpha");
+            cmd.add("set");
+            cmd.add("-channel");
+            cmd.add("A");
+            cmd.add("-evaluate");
+            cmd.add("multiply");
+            cmd.add(String.format(java.util.Locale.ROOT, "%.3f", opacity));
+            cmd.add("+channel");
+        }
         cmd.add(")");
-        cmd.add("-gravity");
-        cmd.add("SouthEast");
-        cmd.add("-geometry");
-        cmd.add("+" + variant.watermarkMargin() + "+" + variant.watermarkMargin());
+
+        if (placement.isDefaultSe()) {
+            int margin = Math.max(4, (int) Math.round(placement.marginFrac() * outW));
+            cmd.add("-gravity");
+            cmd.add("SouthEast");
+            cmd.add("-geometry");
+            cmd.add("+" + margin + "+" + margin);
+        } else {
+            // xFrac/yFrac — левый верх watermark в долях выходного кропа
+            int xPx = Math.max(0, (int) Math.round(placement.xFrac() * outW));
+            int yPx = Math.max(0, (int) Math.round(placement.yFrac() * outH));
+            cmd.add("-gravity");
+            cmd.add("NorthWest");
+            cmd.add("-geometry");
+            cmd.add("+" + xPx + "+" + yPx);
+        }
         cmd.add("-composite");
 
         cmd.add(out.toString());

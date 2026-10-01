@@ -9,6 +9,7 @@ import io.javalin.http.Handler;
 import io.javalin.http.staticfiles.Location;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
@@ -16,10 +17,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.milastoria.image.ImageProcessor;
 import ru.milastoria.mapper.CategoryMapper;
+import ru.milastoria.mapper.DictMapper;
 import ru.milastoria.mapper.LotMapper;
+import ru.milastoria.mapper.SettingsMapper;
+import ru.milastoria.mapper.SloganMapper;
+import ru.milastoria.search.LotSearchIndex;
 import ru.milastoria.web.AdminController;
 import ru.milastoria.web.Auth;
 import ru.milastoria.web.SiteController;
+import ru.milastoria.web.SitemapController;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -44,16 +50,12 @@ public class App {
     private static final Logger log = LoggerFactory.getLogger(App.class);
 
     public static void main(String[] args) throws Exception {
-        String dbPath = env("DB_PATH", "data/milastoria.db");
-        int port = Integer.parseInt(env("PORT", "9091"));
-        // По умолчанию — фото/видео из соседнего prototype/assets (удобно
-        // для локальной разработки и демонстрации вёрстки). Именно
-        // prototype, а не prototype-v2/assets — тот путь симлинк, а Jetty
-        // по умолчанию не отдаёт файлы через симлинки (alias-защита от
-        // directory traversal) и тихо возвращает 404 без объяснений.
-        // В контейнере CONTENT_DIR должен указывать на реальный volume
-        // с загрузками, см. Dockerfile.
-        Path contentDirPath = Path.of(env("CONTENT_DIR", "../prototype/assets"));
+        AppConfig cfg = AppConfig.load();
+
+        String dbPath = cfg.get("storage.db_path", "DB_PATH", "data/milastoria.db");
+        int port = Integer.parseInt(cfg.get("server.port", "PORT", "8080"));
+        // Графические ресурсы сайта (img/video/originals) — CONTENT_DIR / storage.content_dir
+        Path contentDirPath = Path.of(cfg.get("storage.content_dir", "CONTENT_DIR", "../prototype/assets"));
         Files.createDirectories(contentDirPath);
         // Jetty резолвит внешние статические директории надёжно только от
         // абсолютного пути — относительный "../prototype-v2/assets" тихо
@@ -64,14 +66,41 @@ public class App {
         initSchema(dataSource);
 
         SqlSessionFactory sqlSessionFactory = createSqlSessionFactory(dataSource);
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            // Словари (повод/материалы/теги) — перенос из tags и free-text lots, если пусто
+            DictMapper dictMapper = session.getMapper(DictMapper.class);
+            if (dictMapper.isDictEmpty()) {
+                dictMapper.seedTagsFromLegacy();
+                dictMapper.seedOccasionsFromLegacy();
+                dictMapper.seedFabricsFromLegacy();
+                dictMapper.seedLinksFromTags();
+                dictMapper.seedLinksFromOccasions();
+                dictMapper.seedLinksFromFabrics();
+                log.info("Словари dict_values перенесены из tags/lots");
+            }
+            SloganMapper sloganMapper = session.getMapper(SloganMapper.class);
+            if (sloganMapper.findAll().isEmpty()) {
+                sloganMapper.insert("Платье — начало вашей <em>истории</em>");
+                sloganMapper.insert("Нарядное платье — история вашей семьи");
+                log.info("Добавлены стартовые слоганы H1");
+            }
+            // FTS-индекс пересобираем при каждом старте: на объёме ~сотни
+            // лотов это мгновенно и снимает расхождения после крашей/ручного SQL.
+            LotSearchIndex.rebuildAll(session);
+        }
+
         TemplateEngine templateEngine = TemplateEngine.createPrecompiled(ContentType.Html);
         SiteController site = new SiteController(sqlSessionFactory, templateEngine);
+        SitemapController sitemap = new SitemapController(
+                sqlSessionFactory,
+                cfg.get("site.base_url", "SITE_BASE_URL", "https://milastoria.ru"));
 
         Path dataDir = Path.of(dbPath).toAbsolutePath().normalize().getParent();
         Path watermark = ImageProcessor.extractBundledWatermark(dataDir.resolve("branding"));
-        ImageProcessor imageProcessor = new ImageProcessor(env("CONVERT_BIN", "convert"), watermark);
+        ImageProcessor imageProcessor = new ImageProcessor(
+                cfg.get("image.convert", "CONVERT_BIN", "convert"), watermark);
 
-        Auth auth = createAuth();
+        Auth auth = createAuth(cfg);
         AdminController admin = new AdminController(
                 sqlSessionFactory, templateEngine, imageProcessor, auth,
                 contentDirPath.toAbsolutePath().normalize(),
@@ -79,6 +108,12 @@ public class App {
         );
 
         Javalin app = Javalin.create(config -> {
+            // Фото с iPad/камеры — десятки МБ; без явного лимита Jetty
+            // может отдать multipart-файл «пустым» (0 байт) в convert.
+            config.http.maxRequestSize = 80L * 1024 * 1024;
+            config.jetty.multipartConfig.maxFileSize(50, io.javalin.config.SizeUnit.MB);
+            config.jetty.multipartConfig.maxTotalRequestSize(80, io.javalin.config.SizeUnit.MB);
+            config.jetty.multipartConfig.maxInMemoryFileSize(4, io.javalin.config.SizeUnit.MB);
             config.staticFiles.add("public"); // брендовые ассеты (логотип, шрифты, css) — из classpath
             config.staticFiles.add(staticFiles -> {
                 staticFiles.hostedPath = "/content";
@@ -90,6 +125,8 @@ public class App {
         app.get("/", site::home);
         app.get("/gallery", site::gallery);
         app.get("/work/{slug}", site::work);
+        // robots.txt — статика из classpath (public/robots.txt)
+        app.get("/sitemap.xml", sitemap::sitemap);
 
         // Всё под /admin, кроме самой формы входа, требует валидной сессии.
         // "/admin/*" НЕ матчит голый "/admin" без хвоста — регистрируем
@@ -107,26 +144,50 @@ public class App {
         app.post("/admin/login", admin::login);
         app.post("/admin/logout", admin::logout);
         app.get("/admin", admin::dashboard);
+
+        app.get("/admin/lots/new", admin::lotFormNew);
+        app.post("/admin/lots", admin::createLot);
+        app.get("/admin/lots/{id}/edit", admin::lotFormEdit);
+        app.post("/admin/lots/{id}", admin::updateLot);
+
+        app.get("/admin/categories", admin::categoriesPage);
+        app.post("/admin/categories/reorder", admin::reorderCategories);
+        app.get("/admin/categories/new", admin::categoryFormNew);
+        app.post("/admin/categories", admin::createCategory);
+        app.get("/admin/categories/{id}/edit", admin::categoryFormEdit);
+        app.post("/admin/categories/{id}", admin::updateCategory);
+
         app.get("/admin/lots/{id}/photos", admin::photosPage);
+        app.get("/admin/watermark", admin::watermarkPage);
+        app.post("/admin/watermark", admin::saveWatermarkSettings);
+        app.get("/admin/contacts", admin::contactsPage);
+        app.post("/admin/contacts", admin::saveContacts);
+        app.get("/admin/other", admin::otherPage);
+        app.post("/admin/other/slogans", admin::addSlogan);
+        app.post("/admin/other/slogans/{id}/delete", admin::deleteSlogan);
+        app.post("/admin/other/slogans/{id}/toggle", admin::toggleSlogan);
+        app.post("/admin/other/about", admin::saveAbout);
+        app.get("/admin/branding/watermark.png", admin::watermarkPng);
         app.post("/admin/lots/{id}/photos", admin::uploadPhoto);
+        app.post("/admin/lots/{id}/photos/reorder", admin::reorderPhotos);
         app.post("/admin/lots/{id}/photos/{imageId}/delete", admin::deletePhoto);
 
         app.start(port);
     }
 
-    private static Auth createAuth() {
-        String user = env("ADMIN_USER", "admin");
-        // Пароль задаётся обычным текстом в переменной окружения — считать
-        // sha256sum руками ради одного пароля на своём же VPS не нужно;
-        // хешируем сами перед тем, как передать в Auth (который дальше
-        // работает только с хешем, не с открытым текстом).
-        String password = env("ADMIN_PASSWORD", "admin");
+    private static Auth createAuth(AppConfig cfg) {
+        String user = cfg.get("admin.user", "ADMIN_USER", "admin");
+        // Пароль — обычный текст в app.yml / ADMIN_PASSWORD; хешируем сами
+        // перед Auth (тот работает только с хешем).
+        String password = cfg.get("admin.password", "ADMIN_PASSWORD", "admin");
         String passwordHash = sha256Hex(password);
-        String sessionSecret = env("SESSION_SECRET", "dev-only-insecure-secret-change-me");
+        String sessionSecret = cfg.get("admin.session_secret", "SESSION_SECRET",
+                "dev-only-insecure-secret-change-me");
 
         if (password.equals("admin") || sessionSecret.equals("dev-only-insecure-secret-change-me")) {
             log.warn("Админка запущена с дефолтным dev-паролем и/или dev-секретом сессии. "
-                    + "Для продакшна обязательно задать ADMIN_PASSWORD и SESSION_SECRET через окружение.");
+                    + "Для продакшна задайте admin.password / admin.session_secret в config/app.yml "
+                    + "или ADMIN_PASSWORD / SESSION_SECRET в окружении.");
         }
         return new Auth(user, passwordHash, sessionSecret);
     }
@@ -163,9 +224,38 @@ public class App {
     private static void initSchema(DataSource dataSource) throws SQLException, IOException {
         try (Connection conn = dataSource.getConnection()) {
             runScript(conn, "/schema.sql");
+            // Старые БД могли быть созданы без created_at — колонки
+            // достраиваем после CREATE TABLE IF NOT EXISTS (он не мигрирует).
+            addColumnIfMissing(conn, "lots", "created_at", "TEXT");
+            addColumnIfMissing(conn, "categories", "created_at", "TEXT");
+            addColumnIfMissing(conn, "categories", "sort", "INTEGER DEFAULT 0");
+            addColumnIfMissing(conn, "lot_images", "wm_x", "REAL");
+            addColumnIfMissing(conn, "lot_images", "wm_y", "REAL");
+            addColumnIfMissing(conn, "lot_images", "wm_width", "REAL");
+            addColumnIfMissing(conn, "lot_images", "wm_opacity", "REAL");
+            // категории без sort заполняем по id (стабильный порядок «как было»)
+            try (Statement st = conn.createStatement()) {
+                st.execute("UPDATE categories SET sort = id WHERE sort = 0 OR sort IS NULL");
+            }
             if (isEmpty(conn, "lots")) {
                 runScript(conn, "/seed.sql");
             }
+        }
+    }
+
+    private static void addColumnIfMissing(Connection conn, String table, String column, String type)
+            throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("name"))) {
+                    return;
+                }
+            }
+        }
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
+            log.info("Миграция: добавлена колонка {}.{}", table, column);
         }
     }
 
@@ -185,14 +275,29 @@ public class App {
      */
     private static void runScript(Connection conn, String resourcePath) throws IOException, SQLException {
         String sql = readResource(resourcePath);
-        try (Statement stmt = conn.createStatement()) {
-            for (String statement : sql.split(";")) {
-                String trimmed = statement.trim();
-                if (!trimmed.isEmpty()) {
-                    stmt.execute(trimmed);
-                }
+        // Новый Statement на каждый блок: sqlite-jdbc может финализировать
+        // PreparedStatement после execute — повторное использование роняет старт.
+        for (String statement : sql.split(";")) {
+            String body = stripLeadingComments(statement);
+            if (body.isEmpty()) {
+                continue;
+            }
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(body);
             }
         }
+    }
+
+    private static String stripLeadingComments(String sql) {
+        StringBuilder sb = new StringBuilder();
+        for (String line : sql.split("\n")) {
+            String t = line.trim();
+            if (t.isEmpty() || t.startsWith("--")) {
+                continue;
+            }
+            sb.append(line).append('\n');
+        }
+        return sb.toString().trim();
     }
 
     private static String readResource(String path) throws IOException {
@@ -211,6 +316,9 @@ public class App {
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CategoryMapper.class);
         configuration.addMapper(LotMapper.class);
+        configuration.addMapper(DictMapper.class);
+        configuration.addMapper(SettingsMapper.class);
+        configuration.addMapper(SloganMapper.class);
         return new SqlSessionFactoryBuilder().build(configuration);
     }
 }

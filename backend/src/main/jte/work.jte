@@ -37,7 +37,7 @@
                     </div>
 
                     @for(LotVideo video : view.videos())
-                        <div class="video-block">
+                        <div class="video-block" id="video-${video.getId()}">
                             <video controls playsinline preload="metadata" poster="${video.getPosterPath()}">
                                 <source src="${video.getPath()}" type="video/mp4">
                             </video>
@@ -55,14 +55,28 @@
 
                     <ul class="spec-list">
                         <li><span class="k">Категория</span><span class="v">${view.categoryTitle()}</span></li>
-                        @if(view.lot().getOccasion() != null)
-                            <li><span class="k">Повод</span><span class="v">${view.lot().getOccasion()}</span></li>
+                        @if(!view.occasions().isEmpty())
+                            <li>
+                                <span class="k">Повод</span>
+                                <span class="v">
+                                    @for(String item : view.occasions())
+                                        <span class="tag-chip">${item}</span>
+                                    @endfor
+                                </span>
+                            </li>
                         @endif
                         @if(view.lot().getYear() != null)
                             <li><span class="k">Год</span><span class="v">${view.lot().getYear()}</span></li>
                         @endif
-                        @if(view.lot().getFabricNotes() != null && !view.lot().getFabricNotes().isBlank())
-                            <li><span class="k">Материалы</span><span class="v">${view.lot().getFabricNotes()}</span></li>
+                        @if(!view.fabrics().isEmpty())
+                            <li>
+                                <span class="k">Материалы</span>
+                                <span class="v">
+                                    @for(String item : view.fabrics())
+                                        <span class="tag-chip">${item}</span>
+                                    @endfor
+                                </span>
+                            </li>
                         @endif
                         @if(!view.tags().isEmpty())
                             <li>
@@ -91,12 +105,12 @@
             @endif
 
             @if(!view.related().isEmpty())
-                <section class="section" style="padding-bottom:0">
+                <section class="section work-related">
                     <div class="section-head">
                         <h2>Похожие работы</h2>
                         <a class="more" href="/gallery?category=${view.categorySlug()}">Все ${view.categoryTitle().toLowerCase()}</a>
                     </div>
-                    <div class="lot-masonry">
+                    <div class="lot-strip">
                         @for(var card : view.related())
                             @template.partials.lotCard(card = card)
                         @endfor

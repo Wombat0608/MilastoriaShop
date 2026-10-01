@@ -12,16 +12,15 @@
     <meta name="description" content="${description}">
     <meta name="robots" content="index, follow">
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/assets/favicon-32-white.png" type="image/png" sizes="32x32" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <div class="proto-banner">
-        Milastoria · вёрстка перенесена на бэкенд (Javalin + jte + SQLite) · фото — рабочие кадры ателье
-    </div>
-
     <header class="site-header" id="site-header">
         <div class="wrap site-header__inner">
             <a class="logo" href="/" aria-label="Milastoria — на главную">
@@ -30,14 +29,11 @@
             <nav class="nav" aria-label="Основная навигация">
                 <a href="/" class="${activeNav.equals("home") ? "is-active" : ""}">Главная</a>
                 <a href="/gallery" class="${activeNav.equals("gallery") ? "is-active" : ""}">Галерея</a>
-                <a href="/gallery?category=family">Family Look</a>
                 <a href="/#about">О нас</a>
                 <a href="/#contacts">Контакты</a>
             </nav>
             <div class="header-contacts">
                 <a href="tel:+79264296458">+7 (926) 429-64-58</a>
-                <span class="header-contacts__sep" aria-hidden="true"></span>
-                <a href="https://wa.me/79264296458" target="_blank" rel="noopener">WhatsApp</a>
             </div>
             <button class="nav-toggle" type="button" aria-label="Меню" aria-expanded="false" data-menu-toggle>
                 <span></span><span></span><span></span>
@@ -49,13 +45,11 @@
         <nav aria-label="Мобильная навигация">
             <a href="/">Главная</a>
             <a href="/gallery">Галерея</a>
-            <a href="/gallery?category=family">Family Look</a>
             <a href="/#about">О нас</a>
             <a href="/#contacts">Контакты</a>
         </nav>
         <div class="header-contacts">
             <a href="tel:+79264296458">+7 (926) 429-64-58</a>
-            <a href="https://wa.me/79264296458" target="_blank" rel="noopener">WhatsApp</a>
         </div>
     </div>
 
@@ -95,7 +89,6 @@
             </div>
             <div class="footer-bottom">
                 <span>© Milastoria</span>
-                <span>Кадрирование и водяные знаки — ImageMagick</span>
             </div>
         </div>
     </footer>

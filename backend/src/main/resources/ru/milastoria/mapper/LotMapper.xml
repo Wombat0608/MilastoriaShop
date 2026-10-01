@@ -2,14 +2,63 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="ru.milastoria.mapper.LotMapper">
 
+    <sql id="cols">
+        id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+    </sql>
+
+    <sql id="colsFull">
+        id, slug, title, category_id, annotation, seo_text, meta_title, meta_description,
+        occasion, year, fabric_notes, client_name, featured, status, sort, created_at
+    </sql>
+
     <select id="findAll" resultType="ru.milastoria.domain.Lot">
-        SELECT id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+        SELECT <include refid="cols"/>
         FROM lots
         ORDER BY sort
     </select>
 
+    <select id="findAllForIndex" resultType="ru.milastoria.domain.Lot">
+        SELECT <include refid="colsFull"/>
+        FROM lots
+    </select>
+
+    <sql id="adminCols">
+        l.id, l.slug, l.title, l.status, l.featured, l.created_at,
+        (SELECT i.path_thumb FROM lot_images i
+          WHERE i.lot_id = l.id ORDER BY i.sort, i.id LIMIT 1) AS cover_thumb,
+        COALESCE(c.title, '') AS category_title,
+        COALESCE(c.slug, '') AS category_slug
+    </sql>
+
+    <sql id="adminWhereCat">
+        <if test="categoryIds != null and categoryIds.size() > 0">
+            AND l.category_id IN
+            <foreach item="catId" collection="categoryIds" open="(" separator="," close=")">
+                #{catId}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="findAllAdmin" resultType="ru.milastoria.view.AdminLotRow">
+        SELECT <include refid="adminCols"/>
+        FROM lots l
+        LEFT JOIN categories c ON c.id = l.category_id
+        WHERE 1=1
+        <include refid="adminWhereCat"/>
+        ORDER BY l.id DESC
+    </select>
+
+    <select id="searchAdmin" resultType="ru.milastoria.view.AdminLotRow">
+        SELECT <include refid="adminCols"/>
+        FROM lots l
+        LEFT JOIN categories c ON c.id = l.category_id
+        WHERE l.id IN (SELECT lot_id FROM lots_fts WHERE lots_fts MATCH #{ftsQuery})
+        <include refid="adminWhereCat"/>
+        ORDER BY l.id DESC
+    </select>
+
     <select id="findFeatured" resultType="ru.milastoria.domain.Lot">
-        SELECT id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+        SELECT <include refid="cols"/>
         FROM lots
         WHERE status = 'published' AND featured = 1
         ORDER BY sort
@@ -17,15 +66,13 @@
     </select>
 
     <select id="findBySlug" resultType="ru.milastoria.domain.Lot">
-        SELECT id, slug, title, category_id, annotation, seo_text, meta_title, meta_description,
-               occasion, year, fabric_notes, client_name, featured, status, sort
+        SELECT <include refid="colsFull"/>
         FROM lots
         WHERE slug = #{slug}
     </select>
 
     <select id="findById" resultType="ru.milastoria.domain.Lot">
-        SELECT id, slug, title, category_id, annotation, seo_text, meta_title, meta_description,
-               occasion, year, fabric_notes, client_name, featured, status, sort
+        SELECT <include refid="colsFull"/>
         FROM lots
         WHERE id = #{id}
     </select>
@@ -51,18 +98,14 @@
                 WHERE t.name = #{tag}
             )
         </if>
-        <if test="query != null">
-            AND (
-                l.title LIKE '%' || #{query} || '%'
-                OR l.annotation LIKE '%' || #{query} || '%'
-                OR l.seo_text LIKE '%' || #{query} || '%'
-            )
+        <if test="ftsQuery != null">
+            AND l.id IN (SELECT lot_id FROM lots_fts WHERE lots_fts MATCH #{ftsQuery})
         </if>
         ORDER BY l.sort
     </select>
 
     <select id="findRelated" resultType="ru.milastoria.domain.Lot">
-        SELECT id, slug, title, category_id, annotation, occasion, year, featured, status, sort
+        SELECT <include refid="cols"/>
         FROM lots
         WHERE status = 'published' AND category_id = #{categoryId} AND id != #{excludeId}
         ORDER BY sort
@@ -73,27 +116,65 @@
         SELECT COUNT(*) FROM lots WHERE status = 'published' AND category_id = #{categoryId}
     </select>
 
+    <select id="existsSlug" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM lots WHERE slug = #{slug})
+    </select>
+
+    <select id="maxSort" resultType="int">
+        SELECT COALESCE(MAX(sort), 0) FROM lots
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.Lot">
+        INSERT INTO lots (slug, title, category_id, annotation, seo_text, meta_title, meta_description,
+                          occasion, year, fabric_notes, client_name, featured, status, sort, created_at)
+        VALUES (#{slug}, #{title}, #{categoryId}, #{annotation}, #{seoText}, #{metaTitle}, #{metaDescription},
+                #{occasion}, #{year}, #{fabricNotes}, #{clientName}, #{featured}, #{status}, #{sort}, #{createdAt})
+    </insert>
+
+    <update id="update" parameterType="ru.milastoria.domain.Lot">
+        UPDATE lots SET
+            slug = #{slug},
+            title = #{title},
+            category_id = #{categoryId},
+            annotation = #{annotation},
+            seo_text = #{seoText},
+            meta_title = #{metaTitle},
+            meta_description = #{metaDescription},
+            occasion = #{occasion},
+            year = #{year},
+            fabric_notes = #{fabricNotes},
+            client_name = #{clientName},
+            featured = #{featured},
+            status = #{status},
+            sort = #{sort}
+        WHERE id = #{id}
+    </update>
+
     <select id="findImagesByLotId" resultType="ru.milastoria.domain.LotImage">
-        SELECT id, lot_id, path_thumb, path_full, alt, caption, sort
+        SELECT id, lot_id, path_thumb, path_full, alt, caption, sort, wm_x, wm_y, wm_width, wm_opacity
         FROM lot_images
         WHERE lot_id = #{lotId}
         ORDER BY sort
     </select>
 
     <select id="findImageById" resultType="ru.milastoria.domain.LotImage">
-        SELECT id, lot_id, path_thumb, path_full, alt, caption, sort
+        SELECT id, lot_id, path_thumb, path_full, alt, caption, sort, wm_x, wm_y, wm_width, wm_opacity
         FROM lot_images
         WHERE id = #{id}
     </select>
 
     <insert id="insertImage" parameterType="ru.milastoria.domain.LotImage">
-        INSERT INTO lot_images (lot_id, path_thumb, path_full, alt, caption, sort)
-        VALUES (#{lotId}, #{pathThumb}, #{pathFull}, #{alt}, #{caption}, #{sort})
+        INSERT INTO lot_images (lot_id, path_thumb, path_full, alt, caption, sort, wm_x, wm_y, wm_width, wm_opacity)
+        VALUES (#{lotId}, #{pathThumb}, #{pathFull}, #{alt}, #{caption}, #{sort}, #{wmX}, #{wmY}, #{wmWidth}, #{wmOpacity})
     </insert>
 
     <delete id="deleteImageById">
         DELETE FROM lot_images WHERE id = #{id}
     </delete>
+
+    <update id="updateImageSort">
+        UPDATE lot_images SET sort = #{sort} WHERE id = #{id}
+    </update>
 
     <select id="findVideosByLotId" resultType="ru.milastoria.domain.LotVideo">
         SELECT id, lot_id, path, poster_path, caption
@@ -108,5 +189,34 @@
         WHERE lt.lot_id = #{lotId}
         ORDER BY t.name
     </select>
+
+    <insert id="upsertTag">
+        INSERT OR IGNORE INTO tags (name) VALUES (#{name})
+    </insert>
+
+    <select id="findTagIdByName" resultType="java.lang.Long">
+        SELECT id FROM tags WHERE name = #{name}
+    </select>
+
+    <insert id="linkTag">
+        INSERT OR IGNORE INTO lot_tags (lot_id, tag_id) VALUES (#{lotId}, #{tagId})
+    </insert>
+
+    <delete id="deleteTagsByLotId">
+        DELETE FROM lot_tags WHERE lot_id = #{lotId}
+    </delete>
+
+    <delete id="clearFts">
+        DELETE FROM lots_fts
+    </delete>
+
+    <delete id="deleteFromFts">
+        DELETE FROM lots_fts WHERE lot_id = #{lotId}
+    </delete>
+
+    <insert id="insertIntoFts">
+        INSERT INTO lots_fts (lot_id, title, annotation, seo_text, meta_title, meta_description, tags)
+        VALUES (#{lotId}, #{title}, #{annotation}, #{seoText}, #{metaTitle}, #{metaDescription}, #{tags})
+    </insert>
 
 </mapper>

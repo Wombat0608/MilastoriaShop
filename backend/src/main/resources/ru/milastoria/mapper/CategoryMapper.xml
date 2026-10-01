@@ -2,16 +2,52 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="ru.milastoria.mapper.CategoryMapper">
 
+    <sql id="cols">
+        id, slug, title, cover_image, seo_text, created_at, sort
+    </sql>
+
     <select id="findAll" resultType="ru.milastoria.domain.Category">
-        SELECT id, slug, title, cover_image, seo_text
+        SELECT <include refid="cols"/>
         FROM categories
-        ORDER BY id
+        ORDER BY sort ASC, id ASC
     </select>
 
     <select id="findBySlug" resultType="ru.milastoria.domain.Category">
-        SELECT id, slug, title, cover_image, seo_text
+        SELECT <include refid="cols"/>
         FROM categories
         WHERE slug = #{slug}
     </select>
+
+    <select id="findById" resultType="ru.milastoria.domain.Category">
+        SELECT <include refid="cols"/>
+        FROM categories
+        WHERE id = #{id}
+    </select>
+
+    <select id="existsSlug" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM categories WHERE slug = #{slug})
+    </select>
+
+    <select id="maxSort" resultType="int">
+        SELECT COALESCE(MAX(sort), 0) FROM categories
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.Category">
+        INSERT INTO categories (slug, title, cover_image, seo_text, created_at, sort)
+        VALUES (#{slug}, #{title}, #{coverImage}, #{seoText}, #{createdAt}, #{sort})
+    </insert>
+
+    <update id="update" parameterType="ru.milastoria.domain.Category">
+        UPDATE categories SET
+            slug = #{slug},
+            title = #{title},
+            cover_image = #{coverImage},
+            seo_text = #{seoText}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateSort">
+        UPDATE categories SET sort = #{sort} WHERE id = #{id}
+    </update>
 
 </mapper>

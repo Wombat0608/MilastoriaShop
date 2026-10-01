@@ -46,6 +46,13 @@
       autoCropArea: 1,
       background: false,
       responsive: true,
+      crop() {
+        // layout watermark-рамки (admin-crop-wm.js)
+        if (typeof window.__setCropCropper === "function") {
+          window.__setCropCropper(cropper);
+        }
+        document.dispatchEvent(new CustomEvent("cropper:ready"));
+      },
     });
   });
 
@@ -61,12 +68,7 @@
     yInput.value = Math.max(0, data.y);
     wInput.value = data.width;
     hInput.value = data.height;
+    // wm-поля уже должны быть в hidden (admin-crop-wm.js, capture)
     form.submit();
-  });
-
-  document.querySelectorAll("form[data-confirm]").forEach((f) => {
-    f.addEventListener("submit", (e) => {
-      if (!window.confirm(f.dataset.confirm)) e.preventDefault();
-    });
   });
 })();

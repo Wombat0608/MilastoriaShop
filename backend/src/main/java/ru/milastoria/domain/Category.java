@@ -7,6 +7,9 @@ public class Category {
     private String title;
     private String coverImage;
     private String seoText;
+    /** ISO-8601 UTC; null у строк, созданных до появления колонки. */
+    private String createdAt;
+    private int sort;
 
     public long getId() {
         return id;
@@ -46,5 +49,21 @@ public class Category {
 
     public void setSeoText(String seoText) {
         this.seoText = seoText;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public int getSort() {
+        return sort;
+    }
+
+    public void setSort(int sort) {
+        this.sort = sort;
     }
 }

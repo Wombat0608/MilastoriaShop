@@ -17,6 +17,8 @@ public class Lot {
     private boolean featured;
     private String status;
     private int sort;
+    /** ISO-8601 UTC, например 2025-10-01T12:00:00Z. Может быть null у старых строк. */
+    private String createdAt;
 
     public long getId() {
         return id;
@@ -136,5 +138,13 @@ public class Lot {
 
     public void setSort(int sort) {
         this.sort = sort;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
     }
 }

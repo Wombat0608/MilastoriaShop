@@ -11,9 +11,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--line);
   background: var(--white);
+}
+
+.admin-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 0;
 }
 
 .admin-header .logo img {
@@ -21,10 +29,47 @@
   width: auto;
 }
 
+.admin-nav {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+
+.admin-nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 0.1rem;
+}
+
+.admin-nav a:hover {
+  color: var(--ink);
+  border-color: var(--gold);
+}
+
 .admin-main {
-  max-width: 720px;
+  max-width: 860px;
   margin-inline: auto;
   padding: 2rem 1.25rem 4rem;
+}
+
+.admin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-head h1 {
+  margin: 0;
+}
+
+.admin-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
 .admin-error {
@@ -33,6 +78,30 @@
   border: 1px solid #eecac7;
   padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
+}
+
+.admin-notice {
+  color: #1f5c3a;
+  background: #e8f6ee;
+  border: 1px solid #c5e6d4;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-empty {
+  padding: 2rem 1rem;
+  border: 1px dashed var(--line);
+  background: var(--white);
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.admin-meta {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.75rem;
 }
 
 /* ——— логин ——— */
@@ -54,20 +123,360 @@
   color: var(--ink-soft);
 }
 
-.admin-form input {
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
   padding: 0.85rem 0.9rem;
   border: 1px solid var(--line);
   background: var(--white);
   font-size: 1rem;
   min-height: 48px;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.admin-form input:focus {
+.admin-form textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-form textarea:focus {
   outline: none;
   border-color: var(--gold);
 }
 
-/* ——— список лотов ——— */
+.admin-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin-form__row--fields > label.admin-field,
+.admin-form__row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* Одинаковый «ящик» у text-input и select в парных полях (Slug | Раздел и т.п.).
+   Было: input рос от padding, select — от UA + appearance — разная высота. */
+.admin-form__row--fields .admin-field > select,
+.admin-form__row--fields .admin-field > input[type="text"],
+.admin-form__row--fields .admin-field > input[type="number"],
+.admin-form__row--fields .admin-field > input[type="search"] {
+  display: block;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  margin: 0;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background-color: var(--white);
+  font-size: 1rem;
+  line-height: 46px;
+  font-family: inherit;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.admin-form__row--fields .admin-field > select {
+  padding-right: 2rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+                    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+/* убрать дубли из старого правила ниже, если есть */
+
+/* lookup-поля словарей */
+.admin-field-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+}
+
+.dict-field {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.dict-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  min-height: 2rem;
+}
+
+.dict-chips:empty::before {
+  content: "Пока пусто — добавьте значение";
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+.dict-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem 0.35rem 0.75rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: #faf6ef;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.dict-chip__x {
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.dict-chip__x:hover {
+  color: #a3342a;
+  background: #fbeceb;
+}
+
+.dict-lookup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.dict-lookup input {
+  flex: 1;
+  min-width: 180px;
+  min-height: 48px;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  font-size: 1rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.dict-lookup input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.dict-lookup__add {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .admin-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-lot-row {
+    flex-wrap: wrap;
+  }
+
+  .admin-lot-row__actions {
+    width: 100%;
+  }
+}
+
+.admin-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.admin-hint {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  line-height: 1.35;
+}
+
+.admin-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.55rem !important;
+  min-height: 44px;
+  font-size: 0.95rem !important;
+  color: var(--ink) !important;
+}
+
+.admin-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  min-height: 0;
+  accent-color: var(--gold);
+}
+
+.admin-fieldset {
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0;
+}
+
+.admin-fieldset legend {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0 0.35rem;
+}
+
+.admin-details {
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.admin-details > summary {
+  cursor: pointer;
+  padding: 0.95rem 1rem;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  list-style: none;
+}
+
+.admin-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-details > summary::before {
+  content: "▸ ";
+  color: var(--gold);
+}
+
+.admin-details[open] > summary::before {
+  content: "▾ ";
+}
+
+.admin-details__body {
+  display: grid;
+  gap: 1.1rem;
+  padding: 0 1rem 1.15rem;
+}
+
+/* ——— поиск ——— */
+
+.admin-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-search__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-search label[for="admin-q"] {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  flex: 0 0 auto;
+}
+
+/* только строка поиска — НЕ чекбоксы фильтра */
+.admin-search input[type="search"] {
+  flex: 1 1 220px;
+  min-width: 180px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.45rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  width: auto;
+}
+
+.admin-search input[type="search"]:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+/* Фильтр разделов — плотная строка чекбоксов */
+.admin-cat-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-cat-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  user-select: none;
+  min-height: 26px;
+  margin: 0 0.7rem 0 0;
+  padding: 0;
+  white-space: nowrap;
+  width: auto;
+  max-width: none;
+  flex: 0 0 auto;
+}
+
+.admin-cat-check:last-child {
+  margin-right: 0;
+}
+
+.admin-cat-check input {
+  width: 0.9rem;
+  height: 0.9rem;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  flex: 0 0 auto;
+  accent-color: var(--gold);
+}
+
+.admin-cat-check span {
+  flex: 0 0 auto;
+}
+
+/* ——— список лотов / разделов ——— */
 
 .admin-lot-list {
   display: grid;
@@ -78,10 +487,109 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.1rem;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--line);
   background: var(--white);
   min-height: 44px;
+}
+
+.admin-lot-row__icon {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 84px;
+  overflow: hidden;
+  background: var(--paper-dim);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.admin-lot-row__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-lot-row__placeholder {
+  color: var(--ink-faint);
+  font-size: 1.25rem;
+}
+
+.admin-lot-row__body {
+  min-width: 0;
+}
+
+.admin-lot-row__title {
+  display: inline-block;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.admin-lot-row__title:hover {
+  color: var(--gold);
+}
+
+.admin-lot-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.admin-lot-row__slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  background: var(--paper-dim);
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--line);
+}
+
+.admin-lot-row__id {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-lot-row__cat {
+  color: var(--ink-soft);
+}
+
+.admin-lot-row__date {
+  color: var(--ink-faint);
+}
+
+.admin-lot-row__flag {
+  color: var(--gold);
+}
+
+.admin-lot-row__seo {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.admin-lot-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.admin-lot-row__actions .btn {
+  min-height: 40px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
 }
 
 .admin-status {
@@ -104,23 +612,52 @@
   margin: 1.5rem 0 2rem;
 }
 
-.admin-photo-grid figure {
+.admin-photo-card {
   position: relative;
   margin: 0;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--paper-dim);
+  border: 1px solid var(--line);
 }
 
-.admin-photo-grid img {
+.admin-photo-card:active {
+  cursor: grabbing;
+}
+
+.admin-photo-card__handle {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(24, 18, 12, 0.55);
+  color: #fff;
+  font-size: 0.7rem;
+  letter-spacing: -1px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.admin-photo-card img {
   width: 100%;
   aspect-ratio: 3 / 4;
   object-fit: cover;
   display: block;
   background: var(--paper-dim);
+  pointer-events: none;
 }
 
 .admin-photo-grid form {
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
+  z-index: 2;
 }
 
 .admin-photo-delete {
@@ -133,6 +670,20 @@
   font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
+}
+
+.admin-photo-card.is-sort-ghost {
+  opacity: 0.35;
+  outline: 2px dashed var(--gold);
+}
+
+.admin-photo-card.is-sort-chosen {
+  box-shadow: 0 8px 24px rgba(24, 18, 12, 0.25);
+  outline: 2px solid var(--gold);
+}
+
+.admin-photo-card.is-sort-drag {
+  transform: scale(1.03);
 }
 
 /* ——— загрузка: крупная тач-зона под iPad (≥44pt) ——— */
@@ -159,6 +710,217 @@
   cursor: pointer;
 }
 
+.admin-block h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.admin-form--inline {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-slogan-text {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.admin-lot-row--slogan {
+  align-items: flex-start;
+}
+
+.admin-lot-row--slogan .admin-lot-row__actions form {
+  margin: 0;
+}
+
+/* ——— прочее ——— */
+
+.wm-settings {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.wm-settings__frame {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.wm-settings__frame img {
+  max-width: 280px;
+  height: auto;
+}
+
+.wm-settings__frame--empty {
+  color: var(--ink-faint);
+  min-width: 200px;
+}
+
+/* ——— watermark на кропе ——— */
+
+.crop-wm {
+  position: absolute;
+  z-index: 6;
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: 1.5px dashed rgba(255, 220, 150, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.crop-wm[hidden] {
+  display: none;
+}
+
+.crop-wm img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  display: block;
+  opacity: 0.95;
+}
+
+.crop-wm__handle {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  border: 2px solid var(--gold);
+  background: rgba(255, 255, 255, 0.92);
+  cursor: nwse-resize;
+  touch-action: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.crop-wm__handle::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  opacity: 0.85;
+}
+
+.crop-stage__bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  background: rgba(24, 18, 12, 0.92);
+  border-top: 1px solid rgba(246, 240, 230, 0.08);
+}
+
+.crop-stage__opacity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--paper);
+  font-size: 0.9rem;
+  min-width: min(360px, 90vw);
+}
+
+.crop-stage__opacity input[type="range"] {
+  flex: 1;
+  accent-color: var(--gold);
+  min-height: 32px;
+}
+
+.crop-stage__opacity span:last-child {
+  min-width: 3.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ——— категории: drag + обложка ——— */
+
+.admin-lot-row--sortable {
+  cursor: grab;
+}
+
+.admin-lot-row--sortable:active {
+  cursor: grabbing;
+}
+
+.admin-lot-row__drag {
+  flex: 0 0 auto;
+  width: 22px;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+  letter-spacing: -2px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.admin-lot-row.is-sort-ghost {
+  opacity: 0.35;
+  outline: 2px dashed var(--gold);
+}
+
+.admin-lot-row.is-sort-chosen {
+  box-shadow: 0 8px 24px rgba(24, 18, 12, 0.2);
+  outline: 2px solid var(--gold);
+}
+
+.cat-cover {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.cat-cover__row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.cat-cover__thumb {
+  width: 140px;
+  height: 175px;
+  border: 1px solid var(--line);
+  background: var(--paper-dim);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.cat-cover__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cat-cover__empty {
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+.cat-cover__controls {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  min-width: 200px;
+}
+
+.cat-cover__btn {
+  cursor: pointer;
+  text-align: center;
+}
+
 /* ——— полноэкранный кроп ——— */
 
 .crop-stage {
@@ -179,11 +941,29 @@
 .crop-stage__image-wrap {
   flex: 1;
   min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.crop-stage__image-wrap img {
+.crop-stage__image-wrap img#crop-image {
   display: block;
   max-width: 100%;
+  max-height: 100%;
+}
+
+/* Водяной знак в кропе — как ImageMagick: юго-восток */
+.crop-watermark {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: min(22vw, 180px);
+  height: auto;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.92;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
 .crop-stage__actions {

@@ -13,8 +13,8 @@
                 <div class="hero__shade"></div>
             </div>
             <div class="wrap hero__content">
-                <span class="eyebrow">Ателье с 2016 года · Кубинка</span>
-                <h1>Платье — начало вашей <em>истории</em></h1>
+                <span class="eyebrow">Ателье с 2016 года</span>
+                <h1>${view.slogan()}</h1>
                 <p class="lead">
                     Нарядные платья ручной работы для детей и взрослых: галерея работ, Family Look,
                     съёмки клиентов. Пошив на заказ — от идеи до примерки.
@@ -94,16 +94,16 @@
 
         @if(!view.videos().isEmpty())
             <section class="section section--tight">
-                <div class="wrap" style="margin-bottom: 2.25rem;">
+                <div class="wrap">
                     <div class="section-head" style="margin-bottom:0">
                         <h2>Образы в движении</h2>
                         <span class="more" style="pointer-events:none; border-color:transparent">Пролистайте вбок →</span>
                     </div>
-                </div>
-                <div class="video-strip bleed">
-                    @for(var v : view.videos())
-                        @template.partials.videoCard(v = v)
-                    @endfor
+                    <div class="video-strip">
+                        @for(var v : view.videos())
+                            @template.partials.videoCard(v = v)
+                        @endfor
+                    </div>
                 </div>
             </section>
         @endif
@@ -111,17 +111,14 @@
         <section class="section" id="about">
             <div class="wrap split">
                 <div class="split__visual">
-                    <img src="/content/img/client-03.jpg" alt="Образ гостя в платье Milastoria" loading="lazy">
+                    <img src="${view.aboutImage()}" alt="${view.aboutTitle()}" loading="lazy">
                 </div>
                 <div>
-                    <span class="eyebrow">Подход</span>
-                    <h2>Меньше витрины, больше характера</h2>
-                    <p>
-                        Мы уходим от «магазинной» механики Tilda к спокойной галерее: крупные кадры,
-                        короткие аннотации, теги для поиска, видео там, где платье раскрывается
-                        в движении.
-                    </p>
-                    <a class="link" href="/work/zoloto-bant">Пример карточки лота →</a>
+                    <span class="eyebrow">О нас</span>
+                    <h2>${view.aboutTitle()}</h2>
+                    <div class="about-html">
+                        ${view.aboutContent()}
+                    </div>
                 </div>
             </div>
         </section>
@@ -130,36 +127,44 @@
             <div class="wrap split">
                 <div>
                     <span class="eyebrow">Контакты</span>
-                    <h2>Обсудим платье для вашего события</h2>
-                    <p>
-                        Напишите в WhatsApp, Telegram или позвоните — расскажем о сроках,
-                        посадке и вариантах комплекта.
-                    </p>
+                    <h2>${view.contactsTitle()}</h2>
+                    <p>${view.contactsLead()}</p>
                     <ul class="contact-list">
-                        <li>
-                            <span class="label">Телефон</span>
-                            <a href="tel:+79264296458">+7 (926) 429-64-58</a>
-                        </li>
-                        <li>
-                            <span class="label">Почта</span>
-                            <a href="mailto:shop@milastoria.ru">shop@milastoria.ru</a>
-                        </li>
-                        <li>
-                            <span class="label">Адрес</span>
-                            <span>Московская область, город Кубинка</span>
-                        </li>
-                        <li>
-                            <span class="label">Мессенджеры</span>
-                            <span>
-                                <a href="https://wa.me/79264296458" target="_blank" rel="noopener">WhatsApp</a>
-                                ·
-                                <a href="https://t.me/Milastoria" target="_blank" rel="noopener">Telegram</a>
-                            </span>
-                        </li>
+                        @if(view.hasContactsPhone())
+                            <li>
+                                <span class="label">Телефон</span>
+                                <a href="${view.phoneHref()}">${view.contactsPhone()}</a>
+                            </li>
+                        @endif
+                        @if(view.hasContactsEmail())
+                            <li>
+                                <span class="label">Почта</span>
+                                <a href="${view.emailHref()}">${view.contactsEmail()}</a>
+                            </li>
+                        @endif
+                        @if(view.hasContactsAddress())
+                            <li>
+                                <span class="label">Адрес</span>
+                                <span>${view.contactsAddress()}</span>
+                            </li>
+                        @endif
+                        @if(view.hasContactsMessengers())
+                            <li>
+                                <span class="label">Мессенджеры</span>
+                                <span>
+                                    @for(int mi = 0; mi < view.contactsMessengers().size(); mi++)
+                                        @if(mi > 0)
+                                            ·
+                                        @endif
+                                        <a href="${view.contactsMessengers().get(mi).url()}" target="_blank" rel="noopener">${view.contactsMessengers().get(mi).name()}</a>
+                                    @endfor
+                                </span>
+                            </li>
+                        @endif
                     </ul>
                 </div>
                 <div class="split__visual">
-                    <img src="/content/img/client-01.jpg" alt="Клиент Milastoria" loading="lazy">
+                    <img src="${view.contactsImage()}" alt="${view.contactsTitle()}" loading="lazy">
                 </div>
             </div>
         </section>

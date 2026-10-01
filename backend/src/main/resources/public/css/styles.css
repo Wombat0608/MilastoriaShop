@@ -608,19 +608,48 @@ p {
   font-size: clamp(1.5rem, 2.6vw, 2.2rem);
 }
 
-/* ——— Masonry lot grid ——— */
-
+/* ——— Lot grid (gallery / featured) ———
+   Сетка, не masonry-колонки: фото одинаковой пропорции,
+   карточки выровнены по верху в «ряду». */
 .lot-masonry {
-  columns: 4 250px;
-  column-gap: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.6rem 1.25rem;
+  align-items: start;
+}
+
+/* Похожие работы на странице лота: горизонтальный ряд, не masonry.
+   4 карточки в линию на десктопе; на узких экранах — 2 колонки,
+   затем горизонтальный скролл (как video-strip). */
+.lot-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.lot-strip .lot-card {
+  width: 100%;
+  margin-bottom: 0;
+  break-inside: auto;
+}
+
+.lot-strip .lot-card__media {
+  aspect-ratio: 3 / 4;
+}
+
+/* Отступ секции «Похожие работы» от футера */
+.work-related {
+  padding-bottom: 4.5rem;
+  margin-bottom: 0;
 }
 
 .lot-card {
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  break-inside: avoid;
-  margin-bottom: 1.6rem;
   color: inherit;
+  break-inside: avoid;
 }
 
 .lot-card__media {
@@ -628,11 +657,13 @@ p {
   overflow: hidden;
   background: var(--paper-dim);
   margin-bottom: 0.9rem;
+  aspect-ratio: 3 / 4;
 }
 
 .lot-card__media img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
   transition: transform 0.7s var(--ease);
 }
@@ -759,12 +790,14 @@ p {
 
 /* ——— Video filmstrip ——— */
 
+/* Вписывается в .wrap (как список работ), не на всю ширину viewport */
 .video-strip {
   display: flex;
   gap: 0.9rem;
   overflow-x: auto;
   scroll-snap-type: x proximity;
-  padding: 0 1.5rem 0.5rem;
+  padding: 0.25rem 0 0.5rem;
+  margin-top: 2rem;
   scrollbar-width: none;
 }
 
@@ -772,7 +805,7 @@ p {
 
 .video-card {
   position: relative;
-  flex: 0 0 min(72vw, 400px);
+  flex: 0 0 min(70vw, 340px);
   aspect-ratio: 3 / 4;
   overflow: hidden;
   background: var(--ink);
@@ -864,6 +897,11 @@ p {
   grid-template-columns: 1fr 1fr;
   gap: 3.5rem;
   align-items: center;
+}
+
+/* «О нас» на главной: колонки по верху контейнера, не по центру */
+#about .split {
+  align-items: start;
 }
 
 .split__visual {
@@ -971,9 +1009,10 @@ p {
 
 .work-gallery__main {
   position: relative;
-  background: var(--paper-dim);
-  overflow: hidden;
+  background: transparent;
+  overflow: visible;
   cursor: zoom-in;
+  border: none;
 }
 
 .work-gallery__main img {
@@ -981,7 +1020,8 @@ p {
   height: auto;
   max-height: 82vh;
   object-fit: contain;
-  background: var(--paper-dim);
+  background: transparent;
+  display: block;
 }
 
 .work-gallery__thumbs {
@@ -1084,6 +1124,44 @@ p {
 
 .spec-list .tag:hover { color: var(--gold); border-color: var(--gold); }
 
+/* Крошки словарей на странице лота (Повод / Материалы) */
+.tag-chip {
+  display: inline-block;
+  margin: 0 0.4rem 0.3rem 0;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  background: var(--white);
+}
+
+/* HTML-текст блока «О нас» на главной */
+.about-html p {
+  margin: 0 0 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+.about-html p:last-child {
+  margin-bottom: 0;
+}
+
+.about-html a {
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.about-html a:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.about-html strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+
 .work-aside .actions {
   display: grid;
   gap: 0.75rem;
@@ -1128,6 +1206,8 @@ p {
   margin-top: 1.75rem;
   overflow: hidden;
   background: var(--ink);
+  /* якорь #video-{id} с главной — не уезжать под липкую шапку */
+  scroll-margin-top: 5.5rem;
 }
 
 .video-block video {
@@ -1322,7 +1402,8 @@ p {
     grid-template-rows: repeat(3, 200px);
   }
 
-  .lot-masonry { columns: 3 220px; }
+  .lot-masonry { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lot-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 768px) {
@@ -1345,8 +1426,23 @@ p {
   .cat-tile:nth-child(3),
   .cat-tile:nth-child(4) { grid-column: 1; grid-row: auto; }
 
-  .lot-masonry { columns: 2 160px; column-gap: 0.85rem; }
-  .lot-card { margin-bottom: 1rem; }
+  .lot-masonry { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 0.85rem; }
+  .lot-card { margin-bottom: 0; }
+
+  /* Похожие работы — лента вбок, как видео на главной */
+  .lot-strip {
+    display: flex;
+    gap: 0.85rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.35rem;
+    scrollbar-width: none;
+  }
+  .lot-strip::-webkit-scrollbar { display: none; }
+  .lot-strip .lot-card {
+    flex: 0 0 min(72vw, 280px);
+    scroll-snap-align: start;
+  }
 
   .work-gallery__thumbs .thumb { flex-basis: 72px; }
 }

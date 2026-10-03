@@ -27,6 +27,7 @@
                 <a href="/admin/watermark">Водяной знак</a>
                 <a href="/admin/contacts">Контакты</a>
                 <a href="/admin/other">Другое</a>
+                <a href="/admin/analytics">Статистика</a>
             </nav>
         </div>
         <form method="post" action="/admin/logout">

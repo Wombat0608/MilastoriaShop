@@ -14,6 +14,7 @@ import ru.milastoria.mapper.LotMapper;
 import ru.milastoria.mapper.SettingsMapper;
 import ru.milastoria.mapper.SloganMapper;
 import ru.milastoria.util.Fts;
+import ru.milastoria.domain.Slogan;
 import ru.milastoria.view.CategoryOption;
 import ru.milastoria.view.CategoryTile;
 import ru.milastoria.view.ContactLine;
@@ -42,6 +43,10 @@ public class SiteController {
             "<p>Мы шьём нарядные детские и взрослые платья с 2016 года. "
                     + "Крупные кадры, короткие аннотации, видео там, где платье раскрывается "
                     + "в движении. Пошив на заказ — от идеи до примерки.</p>";
+    private static final String DEFAULT_GALLERY_TITLE = "Галерея работ";
+    private static final String DEFAULT_GALLERY_LEAD =
+            "Коллекция нарядных детских, женских платьев, Family Look и работ клиентов. "
+                    + "Каждый лот — с аннотацией, тегами и, при необходимости, видео.";
     private static final String DEFAULT_CONTACTS_TITLE = "Обсудим платье для вашего события";
     private static final String DEFAULT_CONTACTS_LEAD =
             "Напишите в WhatsApp, Telegram или позвоните — расскажем о сроках, "
@@ -52,6 +57,10 @@ public class SiteController {
     private static final String DEFAULT_CONTACTS_MESSENGERS =
             "WhatsApp|https://wa.me/79264296458\nTelegram|https://t.me/Milastoria";
     private static final String DEFAULT_CONTACTS_IMAGE = "/content/img/client-01.jpg";
+    private static final String DEFAULT_HERO_LEAD =
+            "Нарядные платья ручной работы для детей и взрослых: галерея работ, Family Look, "
+                    + "съёмки клиентов. Пошив на заказ — от идеи до примерки.";
+    private static final String DEFAULT_HERO_IMAGE = "/content/img/hero.jpg";
 
     private final SqlSessionFactory sqlSessionFactory;
     private final TemplateEngine templateEngine;
@@ -88,10 +97,14 @@ public class SiteController {
                     .limit(3)
                     .toList();
 
-            String randomSlogan = sloganMapper.findRandomEnabled();
+            String randomSlogan = pickRandomSlogan(sloganMapper);
             String slogan = (randomSlogan == null || randomSlogan.isBlank())
                     ? DEFAULT_SLOGAN
                     : randomSlogan;
+
+            String heroLead = nvlSettings(settings.get("hero_lead"), DEFAULT_HERO_LEAD);
+            String heroImage = nvlSettings(settings.get("hero_image"), DEFAULT_HERO_IMAGE);
+            String heroImageMobile = nvlSettings(settings.get("hero_image_mobile"), "");
 
             String aboutTitle = settings.get("about_title");
             if (aboutTitle == null || aboutTitle.isBlank()) {
@@ -138,6 +151,7 @@ public class SiteController {
 
             render(ctx, "home.jte",
                     new HomeView(categories, featured, videos, slogan,
+                            heroLead, heroImage, heroImageMobile,
                             aboutTitle, aboutHtml, aboutImage,
                             contactsTitle, contactsLead, contactsImage,
                             contactsPhone, contactsEmail, contactsAddress,
@@ -175,9 +189,9 @@ public class SiteController {
                 title = cat != null ? cat.getTitle() : "Галерея";
                 lead = cat != null ? cat.getSeoText() : "";
             } else {
-                title = "Галерея работ";
-                lead = "Коллекция нарядных детских, женских платьев, Family Look и работ клиентов. "
-                        + "Каждый лот — с аннотацией, тегами и, при необходимости, видео.";
+                SettingsMapper settings = session.getMapper(SettingsMapper.class);
+                title = nvlSettings(settings.get("gallery_title"), DEFAULT_GALLERY_TITLE);
+                lead = nvlSettings(settings.get("gallery_description"), DEFAULT_GALLERY_LEAD);
             }
 
             render(ctx, "gallery.jte", new GalleryView(title, lead, options, tag, query, lots));
@@ -229,13 +243,29 @@ public class SiteController {
         return new LotCard(lot.getSlug(), lot.getTitle(), lot.getAnnotation(), cover, hasVideo);
     }
 
+    /** Случайный включённый H1-слоган. В Java — детерминированнее, чем ORDER BY RANDOM() в SQLite. */
+    private static String pickRandomSlogan(SloganMapper sloganMapper) {
+        List<Slogan> enabled = sloganMapper.findEnabled();
+        if (enabled == null || enabled.isEmpty()) {
+            return null;
+        }
+        return enabled.get(RANDOM.nextInt(enabled.size())).getText();
+    }
+
     private static String normalize(String value) {
         return (value == null || value.isBlank()) ? null : value.trim();
+    }
+
+    /** Пустая строка из settings не должна затирать дефолтный текст. */
+    private static String nvlSettings(String value, String fallback) {
+        return (value == null || value.isBlank()) ? fallback : value;
     }
 
     private void render(Context ctx, String template, Object model) {
         StringOutput output = new StringOutput();
         templateEngine.render(template, model, output);
+        // HTML меняется на каждый запрос (слоган, списки) — браузер не должен держать кеш
+        ctx.header("Cache-Control", "no-cache");
         ctx.html(output.toString());
     }
 }

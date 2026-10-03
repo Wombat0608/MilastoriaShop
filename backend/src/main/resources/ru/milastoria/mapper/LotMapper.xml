@@ -23,7 +23,7 @@
     </select>
 
     <sql id="adminCols">
-        l.id, l.slug, l.title, l.status, l.featured, l.created_at,
+        l.id, l.slug, l.title, l.status, l.featured, l.created_at, l.sort AS sort,
         (SELECT i.path_thumb FROM lot_images i
           WHERE i.lot_id = l.id ORDER BY i.sort, i.id LIMIT 1) AS cover_thumb,
         COALESCE(c.title, '') AS category_title,
@@ -39,13 +39,14 @@
         </if>
     </sql>
 
+    <!-- На сквозной порядок: по полю sort, при равенстве — id (стабильно) -->
     <select id="findAllAdmin" resultType="ru.milastoria.view.AdminLotRow">
         SELECT <include refid="adminCols"/>
         FROM lots l
         LEFT JOIN categories c ON c.id = l.category_id
         WHERE 1=1
         <include refid="adminWhereCat"/>
-        ORDER BY l.id DESC
+        ORDER BY l.sort ASC, l.id ASC
     </select>
 
     <select id="searchAdmin" resultType="ru.milastoria.view.AdminLotRow">
@@ -54,7 +55,7 @@
         LEFT JOIN categories c ON c.id = l.category_id
         WHERE l.id IN (SELECT lot_id FROM lots_fts WHERE lots_fts MATCH #{ftsQuery})
         <include refid="adminWhereCat"/>
-        ORDER BY l.id DESC
+        ORDER BY l.sort ASC, l.id ASC
     </select>
 
     <select id="findFeatured" resultType="ru.milastoria.domain.Lot">
@@ -174,6 +175,10 @@
 
     <update id="updateImageSort">
         UPDATE lot_images SET sort = #{sort} WHERE id = #{id}
+    </update>
+
+    <update id="updateLotSort">
+        UPDATE lots SET sort = #{sort} WHERE id = #{id}
     </update>
 
     <select id="findVideosByLotId" resultType="ru.milastoria.domain.LotVideo">

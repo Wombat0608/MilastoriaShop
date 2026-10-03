@@ -15,7 +15,7 @@ public interface LotMapper {
     /** Полные строки для rebuild FTS (включая seo/meta). */
     List<Lot> findAllForIndex();
 
-    /** Список в админке: обложка-иконка, категория, created_at. Новый сверху. */
+    /** Список в админке: обложка-иконка, категория, created_at. Порядок — по sort. */
     List<AdminLotRow> findAllAdmin(@Param("categoryIds") List<Long> categoryIds);
 
     /** Поиск по FTS5 (ftsQuery — результат Fts.toMatchExpression) + фильтр по разделам. */
@@ -56,6 +56,9 @@ public interface LotMapper {
     void deleteImageById(@Param("id") long id);
 
     void updateImageSort(@Param("id") long id, @Param("sort") int sort);
+
+    /** Пересчёт поля «Порядок» лота после drag-and-drop в админке. */
+    void updateLotSort(@Param("id") long id, @Param("sort") int sort);
 
     List<LotVideo> findVideosByLotId(@Param("lotId") long lotId);
 

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ru.milastoria.mapper.DictMapper">
+
+    <select id="findNamesByKind" resultType="string">
+        SELECT name FROM dict_values WHERE kind = #{kind} ORDER BY name
+    </select>
+
+    <select id="findNamesByLot" resultType="string">
+        SELECT d.name
+        FROM dict_values d
+        JOIN lot_dict ld ON ld.dict_id = d.id
+        WHERE ld.lot_id = #{lotId} AND d.kind = #{kind}
+        ORDER BY d.name
+    </select>
+
+    <insert id="upsertValue">
+        INSERT OR IGNORE INTO dict_values (kind, name) VALUES (#{kind}, #{name})
+    </insert>
+
+    <select id="findId" resultType="java.lang.Long">
+        SELECT id FROM dict_values WHERE kind = #{kind} AND name = #{name}
+    </select>
+
+    <delete id="replaceLotDict">
+        DELETE FROM lot_dict
+        WHERE lot_id = #{lotId}
+          AND dict_id IN (SELECT id FROM dict_values WHERE kind = #{kind})
+    </delete>
+
+    <insert id="linkLotDict">
+        INSERT OR IGNORE INTO lot_dict (lot_id, dict_id) VALUES (#{lotId}, #{dictId})
+    </insert>
+
+    <select id="isDictEmpty" resultType="boolean">
+        SELECT NOT EXISTS(SELECT 1 FROM dict_values)
+    </select>
+
+    <!-- Миграция из legacy: каждый метод — один statement (MyBatis не любит multi). -->
+    <insert id="seedTagsFromLegacy">
+        INSERT OR IGNORE INTO dict_values (kind, name)
+        SELECT 'tag', name FROM tags WHERE name IS NOT NULL AND TRIM(name) != ''
+    </insert>
+
+    <insert id="seedOccasionsFromLegacy">
+        INSERT OR IGNORE INTO dict_values (kind, name)
+        SELECT 'occasion', TRIM(x.name) FROM (
+            SELECT l.occasion AS name FROM lots l
+            WHERE l.occasion IS NOT NULL AND TRIM(l.occasion) != '' AND instr(l.occasion, ',') = 0
+            UNION
+            SELECT TRIM(substr(l.occasion, 1, instr(l.occasion || ',', ',') - 1)) FROM lots l
+            WHERE instr(l.occasion, ',') > 0
+            UNION
+            SELECT TRIM(substr(l.occasion, instr(l.occasion, ',') + 1)) FROM lots l
+            WHERE instr(l.occasion, ',') > 0
+        ) x
+        WHERE TRIM(x.name) != ''
+    </insert>
+
+    <insert id="seedFabricsFromLegacy">
+        INSERT OR IGNORE INTO dict_values (kind, name)
+        SELECT 'fabric', TRIM(x.name) FROM (
+            SELECT l.fabric_notes AS name FROM lots l
+            WHERE l.fabric_notes IS NOT NULL AND TRIM(l.fabric_notes) != '' AND instr(l.fabric_notes, ',') = 0
+            UNION
+            SELECT TRIM(substr(l.fabric_notes, 1, instr(l.fabric_notes || ',', ',') - 1)) FROM lots l
+            WHERE instr(l.fabric_notes, ',') > 0
+            UNION
+            SELECT TRIM(substr(l.fabric_notes, instr(l.fabric_notes, ',') + 1)) FROM lots l
+            WHERE instr(l.fabric_notes, ',') > 0
+        ) x
+        WHERE TRIM(x.name) != ''
+    </insert>
+
+    <insert id="seedLinksFromTags">
+        INSERT OR IGNORE INTO lot_dict (lot_id, dict_id)
+        SELECT lt.lot_id, d.id
+        FROM lot_tags lt
+        JOIN tags t ON t.id = lt.tag_id
+        JOIN dict_values d ON d.kind = 'tag' AND d.name = t.name
+    </insert>
+
+    <insert id="seedLinksFromOccasions">
+        INSERT OR IGNORE INTO lot_dict (lot_id, dict_id)
+        SELECT l.id, d.id
+        FROM lots l
+        JOIN dict_values d ON d.kind = 'occasion'
+        WHERE l.occasion IS NOT NULL AND TRIM(l.occasion) != ''
+          AND (d.name = TRIM(l.occasion)
+               OR d.name = TRIM(substr(l.occasion, 1, instr(l.occasion || ',', ',') - 1))
+               OR d.name = TRIM(substr(l.occasion, instr(l.occasion, ',') + 1)))
+    </insert>
+
+    <insert id="seedLinksFromFabrics">
+        INSERT OR IGNORE INTO lot_dict (lot_id, dict_id)
+        SELECT l.id, d.id
+        FROM lots l
+        JOIN dict_values d ON d.kind = 'fabric'
+        WHERE l.fabric_notes IS NOT NULL AND TRIM(l.fabric_notes) != ''
+          AND (d.name = TRIM(l.fabric_notes)
+               OR d.name = TRIM(substr(l.fabric_notes, 1, instr(l.fabric_notes || ',', ',') - 1))
+               OR d.name = TRIM(substr(l.fabric_notes, instr(l.fabric_notes, ',') + 1)))
+    </insert>
+
+</mapper>

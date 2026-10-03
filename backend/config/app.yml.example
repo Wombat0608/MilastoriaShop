@@ -1,0 +1,25 @@
+# =============================================================================
+# Milastoria — пример конфигурации для VPS / продакшена
+# Скопируйте: cp config/app.yml.example config/app.yml
+# Затем замените все значения <...> на свои.
+# =============================================================================
+
+admin:
+  user: admin
+  password: <ЗДЕСЬ_ПАРОЛЬ_АДМИНА>
+  session_secret: <ЗДЕСЬ_ДЛИННЫЙ_СЛУЧАЙНЫЙ_СТРОКА_32+_БАЙТА>
+
+server:
+  port: 8080
+
+storage:
+  # Папка графических ресурсов: img, video, originals (volume)
+  # В Docker: /app/data/content — см. docker-compose / Dockerfile
+  content_dir: /app/data/content
+  db_path: /app/data/milastoria.db
+
+site:
+  base_url: https://milastoria.ru
+
+image:
+  convert: convert

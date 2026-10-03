@@ -686,6 +686,96 @@
   transform: scale(1.03);
 }
 
+/* Кнопка «Просмотр» — лупа в правом нижнем углу карточки, всегда видна */
+.admin-photo-view {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(24, 18, 12, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 1;
+  transition: background 0.15s var(--ease, ease);
+}
+
+.admin-photo-view:hover,
+.admin-photo-view:focus-visible {
+  background: rgba(24, 18, 12, 0.9);
+}
+
+.admin-photo-view__icon {
+  display: block;
+  pointer-events: none;
+}
+
+/* Lightbox просмотра на странице фото (классы .lightbox из styles.css) */
+.admin-lightbox[hidden] {
+  display: none !important;
+}
+
+.admin-lightbox.is-open {
+  display: flex;
+  z-index: 200;
+}
+
+.admin-lightbox img {
+  max-width: min(94vw, 1400px);
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .admin-lightbox {
+    padding: 0;
+    background: #120d09;
+  }
+  .admin-lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: none;
+  }
+  .admin-lightbox .lightbox__close {
+    top: calc(0.65rem + env(safe-area-inset-top, 0));
+    right: 0.65rem;
+  }
+  .admin-lightbox .lightbox__nav {
+    top: auto;
+    bottom: calc(0.85rem + env(safe-area-inset-bottom, 0));
+    transform: none;
+  }
+  .admin-lightbox .lightbox__nav--prev { left: 0.65rem; }
+  .admin-lightbox .lightbox__nav--next { right: 0.65rem; }
+}
+
+.admin-lightbox .lightbox__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1.25rem;
+  text-align: center;
+  color: rgba(246, 240, 230, 0.85);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+/* крупные цели на iPad */
+.admin-lightbox .lightbox__close,
+.admin-lightbox .lightbox__nav {
+  min-width: 48px;
+  min-height: 48px;
+}
+
 /* ——— загрузка: крупная тач-зона под iPad (≥44pt) ——— */
 
 .upload-picker {
@@ -732,6 +822,171 @@
 
 .admin-lot-row--slogan .admin-lot-row__actions form {
   margin: 0;
+}
+
+/* ——— Аналитика (/admin/analytics) ——— */
+
+.stats-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.stats-card {
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.stats-card--soft {
+  background: var(--paper-dim, #f7f5f1);
+}
+
+.stats-card__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #6b6560);
+}
+
+.stats-card strong {
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--ink, #1a1a1a);
+}
+
+.stats-card__sub {
+  font-size: 0.85rem;
+  color: var(--ink-soft, #6b6560);
+}
+
+.stats-trend {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.stats-trend__row {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr 5.5rem;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.stats-trend__day {
+  color: var(--ink-soft, #6b6560);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-trend__bars {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.stats-trend__bar {
+  display: block;
+  height: 6px;
+  min-width: 2px;
+}
+
+.stats-trend__bar--u {
+  background: var(--gold, #c4a35a);
+}
+
+.stats-trend__bar--v {
+  background: var(--ink-soft, #9a948c);
+}
+
+.stats-trend__nums {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft, #6b6560);
+}
+
+.stats-legend {
+  display: inline-block;
+  margin-right: 1rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft, #6b6560);
+}
+
+.stats-legend::before {
+  content: "";
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.45rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.stats-legend--u::before {
+  background: var(--gold, #c4a35a);
+}
+
+.stats-legend--v::before {
+  background: var(--ink-soft, #9a948c);
+}
+
+.stats-path {
+  font-size: 0.92rem;
+  word-break: break-all;
+  color: var(--ink, #1a1a1a);
+}
+
+.stats-path--text {
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.admin-lot-row--stat {
+  align-items: center;
+}
+
+.admin-session-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-session {
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.85rem 1rem;
+}
+
+.admin-session__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: baseline;
+  margin-bottom: 0.55rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft, #6b6560);
+}
+
+.admin-session__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ink, #1a1a1a);
+}
+
+.admin-session__path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+}
+
+.admin-session__arrow {
+  color: var(--ink-soft, #9a948c);
 }
 
 /* ——— прочее ——— */

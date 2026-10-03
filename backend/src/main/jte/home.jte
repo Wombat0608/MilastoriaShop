@@ -9,19 +9,20 @@
     content = @`
         <section class="hero">
             <div class="hero__media">
-                <img src="/content/img/hero.jpg" alt="Нарядные платья Milastoria" fetchpriority="high">
+                <picture>
+                    @if(view.heroImageMobile() != null && !view.heroImageMobile().isBlank())
+                        <source media="(max-width: 768px)" srcset="${view.heroImageMobile()}">
+                    @endif
+                    <img src="${view.heroImage()}" alt="Нарядные платья Milastoria" fetchpriority="high">
+                </picture>
                 <div class="hero__shade"></div>
             </div>
             <div class="wrap hero__content">
                 <span class="eyebrow">Ателье с 2016 года</span>
                 <h1>${view.slogan()}</h1>
-                <p class="lead">
-                    Нарядные платья ручной работы для детей и взрослых: галерея работ, Family Look,
-                    съёмки клиентов. Пошив на заказ — от идеи до примерки.
-                </p>
+                <p class="lead">${view.heroLead()}</p>
                 <div class="hero__actions">
-                    <a class="btn btn--fill-inverse" href="/gallery">Смотреть галерею</a>
-                    <a class="link" href="/gallery?category=family">Family Look →</a>
+                    <a class="link" href="/gallery">Смотреть галерею →</a>
                 </div>
             </div>
         </section>
@@ -41,30 +42,39 @@
             </div>
         </div>
 
-        <section class="section">
+        <section class="section section--tight" style="background: var(--paper-dim); border-bottom:1px solid var(--line);">
             <div class="wrap manifesto">
                 <div>
-                    <span class="eyebrow">Подход</span>
-                    <h2>Галерея, а не витрина магазина</h2>
+                    <span class="eyebrow">Заказ</span>
+                    <h2 style="font-size:1.6rem">Как проходит заказ</h2>
+                    <p style="margin-top:1rem; color:var(--ink-soft); max-width:28em">
+                        Платье шьётся на заказ — от первого разговора до готового образа.
+                        Расскажите повод и настроение, подскажем силуэт, ткань и сроки.
+                    </p>
+                    <a class="btn btn--line" href="/#contacts" style="margin-top:1.5rem">Обсудить заказ</a>
                 </div>
-                <div class="manifesto__facts">
+                <div class="manifesto__facts manifesto__facts--order" style="font-style:normal">
                     <div>
-                        <strong>С 2016 года</strong>
-                        <span>Занимаемся пошивом дизайнерского детского и женского платья, экспериментируем с материалами и кроем.</span>
+                        <strong>1. Заявка</strong>
+                        <span>Пишите в WhatsApp или Telegram: дата события, примеры из галереи, пожелания по силуэту и цвету.</span>
                     </div>
                     <div>
-                        <strong>Направления</strong>
-                        <span>Платья для девочек · женское платье · Family Look · работы клиентов</span>
+                        <strong>2. Эскиз и ткани</strong>
+                        <span>Обсуждаем детали, подбираем ткань и декор, согласовываем стоимость и сроки пошива.</span>
                     </div>
                     <div>
-                        <strong>Формат</strong>
-                        <span>Спокойная галерея вместо магазинной механики: крупные кадры, короткие аннотации, видео там, где платье раскрывается в движении.</span>
+                        <strong>3. Замеры и пошив</strong>
+                        <span>Снимаем мерки, шьём платье, при необходимости правим на промежуточных примерках.</span>
+                    </div>
+                    <div>
+                        <strong>4. Готовое платье</strong>
+                        <span>Финальная примерка и передача — платье готово к вашему событию.</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="section section--tight" style="padding-top:0">
+        <section class="section section--tight">
             <div class="wrap">
                 <div class="section-head">
                     <h2>Направления</h2>

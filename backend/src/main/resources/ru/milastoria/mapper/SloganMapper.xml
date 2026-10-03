@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ru.milastoria.mapper.SloganMapper">
+
+    <select id="findAll" resultType="ru.milastoria.domain.Slogan">
+        SELECT id, text, enabled, sort FROM slogans ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="findEnabled" resultType="ru.milastoria.domain.Slogan">
+        SELECT id, text, enabled, sort FROM slogans
+        WHERE enabled = 1
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="findById" resultType="ru.milastoria.domain.Slogan">
+        SELECT id, text, enabled, sort FROM slogans WHERE id = #{id}
+    </select>
+
+    <select id="findRandomEnabled" resultType="string">
+        SELECT text FROM slogans WHERE enabled = 1
+        ORDER BY RANDOM()
+        LIMIT 1
+    </select>
+
+    <!-- Без useGeneratedKeys: параметр insert(String) — MyBatis не умеет
+         писать keyProperty="id" в java.lang.String. -->
+    <insert id="insert">
+        INSERT INTO slogans (text, enabled, sort)
+        VALUES (#{text}, 1, (SELECT COALESCE(MAX(sort), 0) + 1 FROM slogans))
+    </insert>
+
+    <update id="updateText">
+        UPDATE slogans SET text = #{text} WHERE id = #{id}
+    </update>
+
+    <update id="setEnabled">
+        UPDATE slogans SET enabled = #{enabled} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM slogans WHERE id = #{id}
+    </delete>
+
+</mapper>

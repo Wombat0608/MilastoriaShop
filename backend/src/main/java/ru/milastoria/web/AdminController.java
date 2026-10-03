@@ -13,6 +13,8 @@ import ru.milastoria.domain.Lot;
 import ru.milastoria.domain.LotImage;
 import ru.milastoria.image.CropRect;
 import ru.milastoria.image.ImageProcessor;
+import ru.milastoria.analytics.AnalyticsTracker;
+import ru.milastoria.mapper.AnalyticsMapper;
 import ru.milastoria.mapper.CategoryMapper;
 import ru.milastoria.mapper.DictMapper;
 import ru.milastoria.mapper.LotMapper;
@@ -24,11 +26,15 @@ import ru.milastoria.util.Fts;
 import ru.milastoria.view.AdminLotsView;
 import ru.milastoria.view.AdminLotRow;
 import ru.milastoria.view.AdminPhotosView;
+import ru.milastoria.view.AnalyticsView;
 import ru.milastoria.view.CategoriesView;
 import ru.milastoria.view.CategoryFormView;
 import ru.milastoria.view.ContactsView;
+import ru.milastoria.view.DailyStat;
 import ru.milastoria.view.LotFormView;
+import ru.milastoria.view.PathStat;
 import ru.milastoria.view.SlogansView;
+import ru.milastoria.view.VisitRow;
 import ru.milastoria.view.WatermarkView;
 
 import java.io.IOException;
@@ -38,7 +44,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -272,6 +280,44 @@ public class AdminController {
         ctx.status(204);
     }
 
+    /**
+     * Пересортировка лотов drag-and-drop: formParam order = "id1,id2,...".
+     * В новый порядок переписывается lots.sort = 1..N — то же поле,
+     * что и «Порядок» на форме лота; публичная галерея сортируется по нему.
+     */
+    public void reorderLots(Context ctx) {
+        String order = formParam(ctx, "order");
+        if (order.isBlank()) {
+            ctx.status(400).result("Пустой порядок");
+            return;
+        }
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            LotMapper mapper = session.getMapper(LotMapper.class);
+            var owned = new java.util.HashSet<Long>();
+            for (Lot lot : mapper.findAll()) {
+                owned.add(lot.getId());
+            }
+            int sort = 1;
+            for (String part : order.split(",")) {
+                String raw = part.trim();
+                if (raw.isEmpty()) {
+                    continue;
+                }
+                long id;
+                try {
+                    id = Long.parseLong(raw);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+                if (!owned.contains(id)) {
+                    continue;
+                }
+                mapper.updateLotSort(id, sort++);
+            }
+        }
+        ctx.status(204);
+    }
+
     public void categoryFormNew(Context ctx) {
         render(ctx, "admin/category-form.jte", new CategoryFormView(null, null, null));
     }
@@ -433,6 +479,80 @@ public class AdminController {
 
     // ─────────────── Другое: слоганы + «О нас» ───────────────
 
+    public void analyticsPage(Context ctx) {
+        String error = ctx.queryParam("error");
+        String notice = ctx.queryParam("notice");
+        int periodDays = parsePeriodDays(ctx.queryParam("days"));
+
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            AnalyticsMapper mapper = session.getMapper(AnalyticsMapper.class);
+            String sinceToday = AnalyticsTracker.sinceIso(1);
+            String since7 = AnalyticsTracker.sinceIso(7);
+            String since30 = AnalyticsTracker.sinceIso(30);
+            String sincePeriod = AnalyticsTracker.sinceIso(periodDays);
+            String since14 = AnalyticsTracker.sinceIso(14);
+
+            int sessions7 = mapper.countSessions(since7);
+            double pagesPerSession7 = sessions7 == 0 ? 0.0
+                    : (double) mapper.countPageViews(since7) / sessions7;
+
+            List<String> sessionIds = mapper.recentSessionIds(15);
+            List<VisitRow> visits = sessionIds.isEmpty()
+                    ? List.of()
+                    : mapper.visitsBySessions(sessionIds);
+            List<AnalyticsView.SessionPath> recent = buildSessionPaths(visits);
+
+            render(ctx, "admin/analytics.jte", new AnalyticsView(
+                    mapper.countUniqueVisitors(sinceToday),
+                    mapper.countPageViews(sinceToday),
+                    mapper.countUniqueVisitors(since7),
+                    mapper.countPageViews(since7),
+                    mapper.countUniqueVisitors(since30),
+                    mapper.countPageViews(since30),
+                    mapper.countUniqueVisitors(AnalyticsTracker.sinceIso(3650)),
+                    mapper.countPageViews(AnalyticsTracker.sinceIso(3650)),
+                    sessions7,
+                    Math.round(pagesPerSession7 * 100.0) / 100.0,
+                    mapper.directEntryCount(since7),
+                    mapper.topPaths(sincePeriod, 12),
+                    mapper.topEntryPaths(sincePeriod, 10),
+                    mapper.topReferrers(sincePeriod, 10),
+                    mapper.dailyStats(since14),
+                    recent,
+                    periodDays,
+                    error,
+                    notice));
+        }
+    }
+
+    private static List<AnalyticsView.SessionPath> buildSessionPaths(List<VisitRow> visits) {
+        Map<String, List<VisitRow>> bySession = new LinkedHashMap<>();
+        for (VisitRow row : visits) {
+            bySession.computeIfAbsent(row.sessionId(), k -> new ArrayList<>()).add(row);
+        }
+        List<AnalyticsView.SessionPath> result = new ArrayList<>();
+        for (List<VisitRow> rows : bySession.values()) {
+            List<String> paths = rows.stream().map(VisitRow::path).toList();
+            result.add(new AnalyticsView.SessionPath(
+                    rows.get(0).sessionId(),
+                    paths.get(0),
+                    paths.get(paths.size() - 1),
+                    rows.get(0).createdAt(),
+                    paths));
+        }
+        return result;
+    }
+
+    private static int parsePeriodDays(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return 30;
+        }
+        return switch (raw.trim()) {
+            case "1", "7", "30", "90" -> Integer.parseInt(raw.trim());
+            default -> 30;
+        };
+    }
+
     public void otherPage(Context ctx) {
         String error = ctx.queryParam("error");
         String notice = ctx.queryParam("notice");
@@ -444,8 +564,65 @@ public class AdminController {
                     nvl(settings.get("about_title"), ""),
                     nvl(settings.get("about_html"), ""),
                     nvl(settings.get("about_image"), ""),
+                    nvl(settings.get("gallery_title"), ""),
+                    nvl(settings.get("gallery_description"), ""),
+                    nvl(settings.get("hero_lead"), ""),
+                    nvl(settings.get("hero_image"), ""),
+                    nvl(settings.get("hero_image_mobile"), ""),
                     error, notice));
         }
+    }
+
+    public void saveHero(Context ctx) {
+        String lead = formParam(ctx, "hero_lead");
+        UploadedFile desktop = ctx.uploadedFile("hero_image");
+        UploadedFile mobile = ctx.uploadedFile("hero_image_mobile");
+
+        String desktopPath = null;
+        String mobilePath = null;
+        String notice = "Шапка сохранена";
+
+        if (hasImageUpload(desktop)) {
+            try {
+                desktopPath = saveContentImage("hero", desktop, null);
+                notice = "Шапка и фото для ПК сохранены";
+            } catch (IOException | InterruptedException e) {
+                ctx.redirect("/admin/other?error=" + urlEncode(
+                        "Не удалось сохранить фото для ПК: " + humanImageError(e)));
+                return;
+            }
+        } else if (isBrokenEmptyUpload(desktop)) {
+            ctx.redirect("/admin/other?error=" + urlEncode(
+                    "Файл «для ПК» пустой (0 байт) — выберите фото заново"));
+            return;
+        }
+
+        if (hasImageUpload(mobile)) {
+            try {
+                mobilePath = saveContentImage("hero_mobile", mobile, null);
+                notice = "Шапка и фото для телефона сохранены";
+            } catch (IOException | InterruptedException e) {
+                ctx.redirect("/admin/other?error=" + urlEncode(
+                        "Не удалось сохранить фото для телефона: " + humanImageError(e)));
+                return;
+            }
+        } else if (isBrokenEmptyUpload(mobile)) {
+            ctx.redirect("/admin/other?error=" + urlEncode(
+                    "Файл «для телефона» пустой (0 байт) — выберите фото заново"));
+            return;
+        }
+
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            SettingsMapper settings = session.getMapper(SettingsMapper.class);
+            settings.put("hero_lead", lead);
+            if (desktopPath != null) {
+                settings.put("hero_image", desktopPath);
+            }
+            if (mobilePath != null) {
+                settings.put("hero_image_mobile", mobilePath);
+            }
+        }
+        ctx.redirect("/admin/other?notice=" + urlEncode(notice));
     }
 
     public void addSlogan(Context ctx) {
@@ -502,6 +679,10 @@ public class AdminController {
                 ctx.redirect("/admin/other?error=" + urlEncode("Не удалось сохранить фото: " + humanImageError(e)));
                 return;
             }
+        } else if (isBrokenEmptyUpload(uploaded)) {
+            ctx.redirect("/admin/other?error=" + urlEncode(
+                    "Файл пустой (0 байт) — выберите фото заново"));
+            return;
         }
 
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
@@ -513,6 +694,23 @@ public class AdminController {
             }
         }
         ctx.redirect("/admin/other?notice=" + urlEncode(notice));
+    }
+
+    public void saveGallerySection(Context ctx) {
+        String title = formParam(ctx, "gallery_title");
+        String description = formParam(ctx, "gallery_description");
+        if (description != null) {
+            description = description.trim();
+        } else {
+            description = "";
+        }
+
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            SettingsMapper settings = session.getMapper(SettingsMapper.class);
+            settings.put("gallery_title", title);
+            settings.put("gallery_description", description);
+        }
+        ctx.redirect("/admin/other?notice=" + urlEncode("Раздел «Галерея» сохранён"));
     }
 
     // ─────────────── Контакты (главная #contacts) ───────────────
@@ -554,6 +752,10 @@ public class AdminController {
                 ctx.redirect("/admin/contacts?error=" + urlEncode("Не удалось сохранить фото: " + humanImageError(e)));
                 return;
             }
+        } else if (isBrokenEmptyUpload(uploaded)) {
+            ctx.redirect("/admin/contacts?error=" + urlEncode(
+                    "Файл пустой (0 байт) — выберите фото заново"));
+            return;
         }
 
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
@@ -574,6 +776,19 @@ public class AdminController {
     /** true, если пользователь реально выбрал непустой файл. */
     private static boolean hasImageUpload(UploadedFile uploaded) {
         return uploaded != null && uploaded.size() > 0;
+    }
+
+    /**
+     * Браузер прислал поле файла (имя непустое), но данных нет —
+     * обычно обрыв загрузки с iPad/фото. Без этого проверки такой
+     * multipart тихо пропускался как «фото не меняли».
+     */
+    private static boolean isBrokenEmptyUpload(UploadedFile uploaded) {
+        if (uploaded == null || uploaded.size() > 0) {
+            return false;
+        }
+        String filename = uploaded.filename();
+        return filename != null && !filename.isBlank();
     }
 
     /** Короткое сообщение об ошибке картинки без простыни stderr ImageMagick. */
@@ -1203,6 +1418,7 @@ public class AdminController {
     private void render(Context ctx, String template, Object model) {
         StringOutput output = new StringOutput();
         templateEngine.render(template, model, output);
+        ctx.header("Cache-Control", "no-store");
         ctx.html(output.toString());
     }
 }

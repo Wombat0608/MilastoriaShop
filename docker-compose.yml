@@ -1,0 +1,49 @@
+# Milastoria — прод-сборка: приложение + Caddy (TLS, Let's Encrypt)
+#
+# На VPS:
+#   cp backend/config/app.yml.example backend/config/app.yml
+#   # заполните admin.password / admin.session_secret
+#   docker compose up -d --build
+#
+# DNS на Reg.ru: A-запись milastoria.ru → IP VPS (и www, если нужно).
+
+services:
+  app:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      APP_CONFIG: /app/config/app.yml
+      PORT: "8080"
+      # ENV имеет приоритет над app.yml — можно задать и здесь
+      # ADMIN_PASSWORD: change-me
+      # SESSION_SECRET: change-me-long-random
+      SITE_BASE_URL: https://milastoria.ru
+      CONTENT_DIR: /app/data/content
+      DB_PATH: /app/data/milastoria.db
+    volumes:
+      - ./backend/config/app.yml:/app/config/app.yml:ro
+      - milastoria-data:/app/data
+    # Контент (img/video) — в volume milastoria-data:/app/data/content
+    # Первый раз можно засеять:
+    #   docker compose exec app sh -c 'mkdir -p /app/data/content && cp -a /app/data/content/. /tmp/x 2>/dev/null; true'
+    # Или локально передать: rsync -a prototype/assets/ user@vps:/var/lib/milastoria/content/
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  milastoria-data:
+  caddy_data:
+  caddy_config:

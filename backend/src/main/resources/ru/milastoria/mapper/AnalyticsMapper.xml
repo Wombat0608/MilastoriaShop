@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ru.milastoria.mapper.AnalyticsMapper">
+
+    <insert id="insertVisit">
+        INSERT INTO analytics_visits (visitor_id, session_id, path, referrer, user_agent, created_at)
+        VALUES (#{visitorId}, #{sessionId}, #{path}, #{referrer}, #{userAgent}, #{createdAt})
+    </insert>
+
+    <select id="countUniqueVisitors" resultType="int">
+        SELECT COUNT(DISTINCT visitor_id)
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+    </select>
+
+    <select id="countPageViews" resultType="int">
+        SELECT COUNT(*)
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+    </select>
+
+    <select id="countSessions" resultType="int">
+        SELECT COUNT(DISTINCT session_id)
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+    </select>
+
+    <select id="topPaths" resultType="ru.milastoria.view.PathStat">
+        SELECT path, COUNT(*) AS cnt
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+        GROUP BY path
+        ORDER BY cnt DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="topEntryPaths" resultType="ru.milastoria.view.PathStat">
+        SELECT path, COUNT(*) AS cnt
+        FROM (
+            SELECT session_id, MIN(path) AS path
+            FROM analytics_visits
+            WHERE created_at &gt;= #{since}
+            GROUP BY session_id
+        ) AS firsts
+        GROUP BY path
+        ORDER BY cnt DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="topReferrers" resultType="ru.milastoria.view.PathStat">
+        SELECT COALESCE(NULLIF(referrer, ''), '(прямой переход)') AS path, COUNT(*) AS cnt
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+          AND referrer IS NOT NULL
+          AND referrer != ''
+        GROUP BY path
+        ORDER BY cnt DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="directEntryCount" resultType="int">
+        SELECT COUNT(*)
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+          AND (referrer IS NULL OR referrer = '')
+    </select>
+
+    <select id="dailyStats" resultType="ru.milastoria.view.DailyStat">
+        SELECT substr(created_at, 1, 10) AS day,
+               COUNT(DISTINCT visitor_id) AS visitors,
+               COUNT(*) AS views
+        FROM analytics_visits
+        WHERE created_at &gt;= #{since}
+        GROUP BY day
+        ORDER BY day
+    </select>
+
+    <select id="recentSessionIds" resultType="string">
+        SELECT session_id
+        FROM analytics_visits
+        GROUP BY session_id
+        ORDER BY MAX(created_at) DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="visitsBySessions" resultType="ru.milastoria.view.VisitRow">
+        SELECT session_id AS sessionId,
+               visitor_id AS visitorId,
+               path,
+               referrer,
+               created_at AS createdAt
+        FROM analytics_visits
+        WHERE session_id IN
+              <foreach collection="sessionIds" item="sid" open="(" separator="," close=")">
+                  #{sid}
+              </foreach>
+        ORDER BY created_at ASC
+    </select>
+
+</mapper>

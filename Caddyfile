@@ -1,0 +1,21 @@
+# TLS + reverse proxy. Caddy сам получает и продлевает Let's Encrypt.
+# DNS: A milastoria.ru → IP VPS (Reg.ru → DNS-записи).
+
+{
+	email shop@milastoria.ru
+}
+
+milastoria.ru {
+	encode zstd gzip
+	reverse_proxy app:8080
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+
+www.milastoria.ru {
+	redir https://milastoria.ru{uri} permanent
+}

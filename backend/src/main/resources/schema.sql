@@ -115,3 +115,26 @@ CREATE TABLE IF NOT EXISTS slogans (
 -- Блок «Контакты» на главной — settings (contacts_*):
 -- contacts_title, contacts_lead, contacts_image, contacts_phone,
 -- contacts_email, contacts_address, contacts_messengers ("Имя|url" по строке)
+-- Раздел «Галерея» (/gallery, без фильтров) — settings (gallery_*):
+-- gallery_title, gallery_description
+-- Шапка hero главной — settings (hero_*):
+-- hero_lead, hero_image, hero_image_mobile
+
+-- Аналитика сайта (серверная, без внешних трекеров).
+-- visitor_id — анонимный id из подписанной cookie
+-- session_id — маршрут за визит
+-- created_at — ISO-8601 UTC. Статистика читается SQL, сырые логи не нужны наружу.
+CREATE TABLE IF NOT EXISTS analytics_visits (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    visitor_id  TEXT NOT NULL,
+    session_id  TEXT NOT NULL,
+    path        TEXT NOT NULL,
+    referrer    TEXT,
+    user_agent  TEXT,
+    created_at  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_created ON analytics_visits(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_visitor ON analytics_visits(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_session ON analytics_visits(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_visits_path ON analytics_visits(path);

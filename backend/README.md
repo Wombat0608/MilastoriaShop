@@ -110,8 +110,19 @@ docker run -p 8080:8080 -v milastoria-data:/app/data milastoria-app
 ```
 
 Том `milastoria-data` — это и есть весь бэкап: файл БД плюс (в будущем)
-загруженные фото. `docker-compose.yml` с Caddy для TLS на VPS — следующий
-шаг после того, как сам образ подтверждён рабочим.
+загруженные фото.
+
+## VPS + Caddy (прод)
+
+В корне репозитория: `docker-compose.yml` + `Caddyfile`.
+
+1. VPS: 1–2 vCPU, 1–2 ГБ RAM, Ubuntu 22.04/24.04, Docker + Compose.
+2. DNS на Reg.ru: `A milastoria.ru → IP VPS` (+ `www` → тот же IP).
+3. `cp backend/config/app.yml.example backend/config/app.yml` — пароль и session_secret.
+4. На сервере: `git clone … && cd Milastoria_Tilda && docker compose up -d --build`.
+5. Caddy сам выпустит HTTPS (Let's Encrypt) — платный сертификат не нужен.
+
+Бэкап: `docker compose exec app tar -C /app/data -czf - . > backup.tgz` (БД + контент).
 
 ## Тесты
 

@@ -1,0 +1,16 @@
+data/
+.idea/
+*.iml
+Сырье/
+prototype/
+prototype-v2/
+picty-app/
+picty-app-2/
+pictures/
+fonts/
+icons/
+scripts/
+backend/target/
+backend/config/app.yml
+*.log
+nohup.out

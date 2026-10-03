@@ -16,6 +16,8 @@ import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.milastoria.image.ImageProcessor;
+import ru.milastoria.analytics.AnalyticsTracker;
+import ru.milastoria.mapper.AnalyticsMapper;
 import ru.milastoria.mapper.CategoryMapper;
 import ru.milastoria.mapper.DictMapper;
 import ru.milastoria.mapper.LotMapper;
@@ -101,6 +103,9 @@ public class App {
                 cfg.get("image.convert", "CONVERT_BIN", "convert"), watermark);
 
         Auth auth = createAuth(cfg);
+        String sessionSecret = cfg.get("admin.session_secret", "SESSION_SECRET",
+                "dev-only-insecure-secret-change-me");
+        AnalyticsTracker analytics = new AnalyticsTracker(sqlSessionFactory, sessionSecret);
         AdminController admin = new AdminController(
                 sqlSessionFactory, templateEngine, imageProcessor, auth,
                 contentDirPath.toAbsolutePath().normalize(),
@@ -128,6 +133,10 @@ public class App {
         // robots.txt — статика из classpath (public/robots.txt)
         app.get("/sitemap.xml", sitemap::sitemap);
 
+        // Публичные страницы сайта — анонимная аналитика (visitor/session cookie).
+        // Пропускает /admin, статику, ботов; ошибки трекера не валят ответ.
+        app.before(analytics::track);
+
         // Всё под /admin, кроме самой формы входа, требует валидной сессии.
         // "/admin/*" НЕ матчит голый "/admin" без хвоста — регистрируем
         // обработчик на оба варианта явно, а не полагаемся на один паттерн.
@@ -147,6 +156,7 @@ public class App {
 
         app.get("/admin/lots/new", admin::lotFormNew);
         app.post("/admin/lots", admin::createLot);
+        app.post("/admin/lots/reorder", admin::reorderLots);
         app.get("/admin/lots/{id}/edit", admin::lotFormEdit);
         app.post("/admin/lots/{id}", admin::updateLot);
 
@@ -166,7 +176,10 @@ public class App {
         app.post("/admin/other/slogans", admin::addSlogan);
         app.post("/admin/other/slogans/{id}/delete", admin::deleteSlogan);
         app.post("/admin/other/slogans/{id}/toggle", admin::toggleSlogan);
+        app.post("/admin/other/hero", admin::saveHero);
         app.post("/admin/other/about", admin::saveAbout);
+        app.post("/admin/other/gallery", admin::saveGallerySection);
+        app.get("/admin/analytics", admin::analyticsPage);
         app.get("/admin/branding/watermark.png", admin::watermarkPng);
         app.post("/admin/lots/{id}/photos", admin::uploadPhoto);
         app.post("/admin/lots/{id}/photos/reorder", admin::reorderPhotos);
@@ -319,6 +332,7 @@ public class App {
         configuration.addMapper(DictMapper.class);
         configuration.addMapper(SettingsMapper.class);
         configuration.addMapper(SloganMapper.class);
+        configuration.addMapper(AnalyticsMapper.class);
         return new SqlSessionFactoryBuilder().build(configuration);
     }
 }

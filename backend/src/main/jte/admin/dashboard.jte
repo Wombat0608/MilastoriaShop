@@ -55,6 +55,17 @@
             @endif
         </form>
 
+        @if(view.hasFilters())
+            <div class="admin-meta" style="margin-bottom:0.75rem">
+                Сортировка drag-and-drop доступна только в полном списке — снимите поиск и фильтры.
+            </div>
+        @else
+            <p class="admin-hint" style="margin-bottom:0.75rem">
+                Порядок на сайте и в списке: перетащите строку. На iPad — удерживайте и тяните.
+                Поле «Порядок» на форме лота обновляется автоматически.
+            </p>
+        @endif
+
         @if(view.lots().isEmpty())
             <div class="admin-empty">
                 @if(view.hasFilters())
@@ -77,39 +88,47 @@
                     · фильтр по разделам
                 @endif
             </div>
-            <div class="admin-lot-list">
+            <div class="admin-lot-list" id="lot-grid" data-sortable="${view.hasFilters() ? "0" : "1"}">
                 @for(AdminLotRow lot : view.lots())
-                    <article class="admin-lot-row">
-                        <a class="admin-lot-row__icon" href="/admin/lots/${lot.id()}/edit" aria-label="Открыть ${lot.title()}">
-                            @if(lot.coverThumb() != null && !lot.coverThumb().isBlank())
-                                <img src="${lot.coverThumb()}" alt="" loading="lazy">
+                    <article class="admin-lot-row${view.hasFilters() ? "" : " admin-lot-row--sortable"}"
+                             data-lot-id="${lot.getId()}">
+                        @if(!view.hasFilters())
+                            <div class="admin-lot-row__drag" aria-hidden="true">⋮⋮</div>
+                        @endif
+                        <a class="admin-lot-row__icon" href="/admin/lots/${lot.getId()}/edit" aria-label="Открыть ${lot.getTitle()}">
+                            @if(lot.getCoverThumb() != null && !lot.getCoverThumb().isBlank())
+                                <img src="${lot.getCoverThumb()}" alt="" loading="lazy">
                             @else
                                 <span class="admin-lot-row__placeholder" aria-hidden="true">?</span>
                             @endif
                         </a>
                         <div class="admin-lot-row__body grow">
-                            <a class="admin-lot-row__title" href="/admin/lots/${lot.id()}/edit">${lot.title()}</a>
+                            <a class="admin-lot-row__title" href="/admin/lots/${lot.getId()}/edit">${lot.getTitle()}</a>
                             <div class="admin-lot-row__meta">
-                                <code class="admin-lot-row__slug">/${lot.slug()}</code>
-                                <span class="admin-lot-row__id">#${lot.id()}</span>
-                                @if(lot.categoryTitle() != null && !lot.categoryTitle().isBlank())
-                                    <span class="admin-lot-row__cat">${lot.categoryTitle()}</span>
+                                <code class="admin-lot-row__slug">/${lot.getSlug()}</code>
+                                <span class="admin-lot-row__id">#${lot.getId()}</span>
+                                @if(lot.getCategoryTitle() != null && !lot.getCategoryTitle().isBlank())
+                                    <span class="admin-lot-row__cat">${lot.getCategoryTitle()}</span>
                                 @endif
                                 <span class="admin-lot-row__date">${lot.createdAtFormatted()}</span>
-                                <span class="admin-status ${lot.published() ? "is-published" : ""}">${lot.status()}</span>
-                                @if(lot.featured())
+                                <span class="admin-status ${lot.published() ? "is-published" : ""}">${lot.getStatus()}</span>
+                                @if(lot.isFeatured())
                                     <span class="admin-lot-row__flag">★</span>
                                 @endif
                             </div>
                         </div>
                         <div class="admin-lot-row__actions">
-                            <a class="btn btn--line" href="/work/${lot.slug()}" target="_blank" rel="noopener">Сайт</a>
-                            <a class="btn btn--line" href="/admin/lots/${lot.id()}/photos">Фото</a>
-                            <a class="btn btn--line" href="/admin/lots/${lot.id()}/edit">Правка</a>
+                            <a class="btn btn--line" href="/work/${lot.getSlug()}" target="_blank" rel="noopener">Сайт</a>
+                            <a class="btn btn--line" href="/admin/lots/${lot.getId()}/photos">Фото</a>
+                            <a class="btn btn--line" href="/admin/lots/${lot.getId()}/edit">Правка</a>
                         </div>
                     </article>
                 @endfor
             </div>
+        @endif
+        @if(!view.hasFilters())
+            <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+            <script src="/js/admin-lot-sort.js"></script>
         @endif
         <script src="/js/admin-filter.js"></script>
     `

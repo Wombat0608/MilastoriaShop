@@ -94,6 +94,30 @@
       if (e.key === "ArrowLeft") step(-1);
       if (e.key === "ArrowRight") step(1);
     });
+
+    // Свайп на телефоне: влево — следующее, вправо — предыдущее
+    let touchStartX = 0;
+    let touchStartY = 0;
+    lightbox.addEventListener(
+      "touchstart",
+      (e) => {
+        if (!e.changedTouches.length) return;
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      },
+      { passive: true }
+    );
+    lightbox.addEventListener(
+      "touchend",
+      (e) => {
+        if (!e.changedTouches.length) return;
+        const dx = e.changedTouches[0].screenX - touchStartX;
+        const dy = e.changedTouches[0].screenY - touchStartY;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+        step(dx < 0 ? 1 : -1);
+      },
+      { passive: true }
+    );
   }
 
   document.addEventListener("DOMContentLoaded", () => {

@@ -1,4 +1,4 @@
-/* Сортировка разделов drag-and-drop (iPad: long-press). */
+/* Сортировка разделов drag-and-drop (iPad: long-press) + вертушка. */
 
 (function () {
   var grid = document.getElementById("category-grid");
@@ -18,13 +18,19 @@
           return el.getAttribute("data-category-id");
         })
         .join(",");
+      var loading = window.AdminLoading;
+      var token = loading && loading.show ? loading.show("Сохраняю порядок разделов…") : null;
       fetch("/admin/categories/reorder", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
         body: "order=" + encodeURIComponent(ids),
         credentials: "same-origin",
       }).then(function (res) {
+        if (loading && loading.hide) loading.hide(token);
         if (!res.ok) console.error("category reorder failed", res.status);
+      }).catch(function (err) {
+        if (loading && loading.hide) loading.hide(token);
+        console.error("category reorder failed", err);
       });
     },
   });

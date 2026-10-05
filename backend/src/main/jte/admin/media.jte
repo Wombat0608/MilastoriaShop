@@ -93,7 +93,8 @@
             </div>
             <div class="media-bulk-bar__actions">
                 @if(view.targetingLot())
-                    <form method="post" action="/admin/media/attach-batch" id="media-batch-form">
+                    <form method="post" action="/admin/media/attach-batch" id="media-batch-form"
+                          data-loading-message="Прикрепляю файлы к лоту…">
                         <input type="hidden" name="lot_id" value="${view.lotId()}">
                         <button type="submit" class="btn btn--fill" id="media-batch-submit"
                                 data-confirm="Прикрепить выбранные файлы к лоту? Файлы уйдут из медиатеки в папку лота.">

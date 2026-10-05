@@ -1,4 +1,5 @@
-/* Медиатека: множественный выбор файлов + прикрепление к лоту. */
+/* Медиатека: множественный выбор файлов + прикрепление к лоту.
+   Submit формы — через AdminLoading (см. admin.js); здесь только синхронизация. */
 
 (function () {
   var grid = document.getElementById("media-grid");
@@ -44,7 +45,6 @@
           ? "Прикрепить выбранные к лоту (" + n + ")"
           : "Выбрать лот и прикрепить (" + n + ")");
     }
-    // GET: mediaIds в query; POST: media_ids как повторяющиеся hidden
     Array.prototype.slice.call(batchForm.querySelectorAll("input[data-batch-id]"))
       .forEach(function (el) { el.remove(); });
     if (!isPost && batchIdsField) {
@@ -84,8 +84,14 @@
 
   batchForm.addEventListener("submit", function (e) {
     sync();
-    if (!selectedIds().length) {
+    var ids = selectedIds();
+    if (!ids.length) {
       e.preventDefault();
+      return;
+    }
+    // подтверждение + вертушка уже в admin.js
+    if (window.AdminLoading) {
+      window.AdminLoading.show("Прикрепляю " + ids.length + " файл(ов)…");
     }
   });
 

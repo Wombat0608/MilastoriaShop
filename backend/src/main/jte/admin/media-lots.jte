@@ -98,7 +98,8 @@
                         </div>
                         <div class="admin-lot-row__actions">
                             @if(view.attachingBatch())
-                                <form method="post" action="/admin/media/lots/${lot.getId()}/attach-selected" class="media-pick-form">
+                                <form method="post" action="/admin/media/lots/${lot.getId()}/attach-selected" class="media-pick-form"
+                                    data-loading-message="Прикрепляю к «${lot.getTitle()}»…">
                                     @for(Long mediaId : view.mediaIds())
                                         <input type="hidden" name="media_ids" value="${mediaId}">
                                     @endfor

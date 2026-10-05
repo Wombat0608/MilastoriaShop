@@ -1,11 +1,78 @@
-/* Админка: подтверждения форм, slug из названия.
-   Кроп загрузки фото — отдельный admin-upload.js (только на странице фото). */
+/* Админка: подтверждения форм, slug, global loading-modal + anti-double submit.
+   Кроп загрузки фото — admin-upload.js; fetch-загрузки — admin-media-upload.js. */
 
 (function () {
-  document.querySelectorAll("form[data-confirm]").forEach(function (f) {
-    f.addEventListener("submit", function (e) {
-      if (!window.confirm(f.dataset.confirm)) e.preventDefault();
+  var loading = window.AdminLoading;
+
+  function isLoading() {
+    return !!(loading && loading.isLoading && loading.isLoading());
+  }
+
+  function showLoading(message) {
+    if (loading && loading.show) loading.show(message || "Сохраняю…");
+  }
+
+  function hideLoading() {
+    if (loading && loading.hideAll) loading.hideAll();
+  }
+
+  function isNavigationalForm(form) {
+    var method = (form.getAttribute("method") || "get").toLowerCase();
+    if (method === "get") return true;
+    if (form.hasAttribute("data-no-loading")) return true;
+    var target = form.getAttribute("target");
+    if (target && target !== "_self") return true;
+    return false;
+  }
+
+  function defaultMessage(form) {
+    if (form.dataset && form.dataset.loadingMessage) return form.dataset.loadingMessage;
+    var file = form.querySelector('input[type="file"]');
+    if (file && file.files && file.files.length > 0) {
+      return "Загружаю файл(ы)…";
+    }
+    return "Сохраняю…";
+  }
+
+  // ——— confirm + loading на обычных формах ———
+  document.querySelectorAll("form").forEach(function (form) {
+    form.addEventListener("submit", function (e) {
+      if (form.dataset.confirm) {
+        if (!window.confirm(form.dataset.confirm)) {
+          e.preventDefault();
+          return;
+        }
+      }
+
+      if (isNavigationalForm(form)) return;
+
+      // повторный клик / второй submit — блокируем
+      if (form.dataset.submitting === "1" || isLoading()) {
+        e.preventDefault();
+        return;
+      }
+
+      form.dataset.submitting = "1";
+      form.classList.add("is-submitting");
+      showLoading(defaultMessage(form));
+
+      // если браузер не ушёл (ошибка сети/валидация) — снимаем блок
+      window.setTimeout(function () {
+        // submit обычно ведёт к unload; если страница осталась — форма может
+        // быть не заблокирована вечно. Снимаем флаг через 30с (защита от вечного lock).
+      }, 30000);
     });
+  });
+
+  // сброс флага после возврата (bfcache / рестор)
+  window.addEventListener("pageshow", function (e) {
+    if (e && e.persisted) {
+      document.querySelectorAll("form.is-submitting").forEach(function (form) {
+        form.dataset.submitting = "0";
+        form.classList.remove("is-submitting");
+      });
+      hideLoading();
+    }
   });
 
   var MAP = {
@@ -36,7 +103,6 @@
     var filledOnce = false;
     source.addEventListener("input", function () {
       if (target.value && !filledOnce && source.dataset.slugTouched !== "1") {
-        // первый ввод заполняет slug; дальше пользователь может править сам
         filledOnce = true;
       }
       if (!target.dataset.userEdited || target.dataset.userEdited !== "1") {
@@ -45,7 +111,6 @@
     });
     target.addEventListener("input", function () {
       target.dataset.userEdited = target.value ? "1" : "0";
-      // нормализуем: латиница/цифры/дефис
       target.value = target.value
         .toLowerCase()
         .replace(/[^a-z0-9-]/g, "")
@@ -55,4 +120,11 @@
       target.value = slugify(source.value);
     }
   }
+
+  // экспорт для page scripts
+  window.AdminFormBusy = {
+    showLoading: showLoading,
+    hideLoading: hideLoading,
+    isLoading: isLoading,
+  };
 })();

@@ -1,10 +1,9 @@
 /* Админка — выбор фото → кроп на весь экран → отправка формы.
-   Cropper.js делает всю работу с жестами (включая pinch на iPad),
-   этот файл только соединяет его с обычной HTML-формой. */
+   Cropper.js делает всю работу с жестами; перед form.submit() — вертушка. */
 
 (function () {
   const fileInput = document.getElementById("file-input");
-  if (!fileInput) return; // на этой странице нет загрузки (напр. логин)
+  if (!fileInput) return;
 
   const cropStage = document.getElementById("crop-stage");
   const cropImage = document.getElementById("crop-image");
@@ -47,7 +46,6 @@
       background: false,
       responsive: true,
       crop() {
-        // layout watermark-рамки (admin-crop-wm.js)
         if (typeof window.__setCropCropper === "function") {
           window.__setCropCropper(cropper);
         }
@@ -63,12 +61,16 @@
 
   confirmBtn.addEventListener("click", () => {
     if (!cropper) return;
-    const data = cropper.getData(true); // true = округлить до целых пикселей
+    if (form.dataset.submitting === "1") return;
+    const data = cropper.getData(true);
     xInput.value = Math.max(0, data.x);
     yInput.value = Math.max(0, data.y);
     wInput.value = data.width;
     hInput.value = data.height;
-    // wm-поля уже должны быть в hidden (admin-crop-wm.js, capture)
+    if (window.AdminLoading) {
+      form.dataset.submitting = "1";
+      window.AdminLoading.show("Загружаю фото…");
+    }
     form.submit();
   });
 })();

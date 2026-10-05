@@ -64,7 +64,8 @@
             </div>
         </div>
 
-        <form method="post" action="/admin/media/${view.media().getId()}/attach" id="attach-form" class="admin-form" style="margin-top:1.25rem">
+        <form method="post" action="/admin/media/${view.media().getId()}/attach" id="attach-form" class="admin-form" style="margin-top:1.25rem"
+              data-loading-message="Прикрепляю файл к лоту…">
             <div class="lot-picker" id="attach-lot-picker">
                 <div class="lot-picker__head">
                     <label for="attach-lot-filter">Лот</label>

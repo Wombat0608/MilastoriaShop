@@ -38,6 +38,7 @@
     <main class="admin-main">
         ${content}
     </main>
+    <script src="/js/admin-loading.js"></script>
     <script src="/js/admin.js"></script>
     <script src="/js/admin-dict.js"></script>
 </body>

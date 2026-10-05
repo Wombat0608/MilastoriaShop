@@ -66,7 +66,12 @@
 
   if (confirmBtn) {
     confirmBtn.addEventListener("click", function () {
+      if (form.dataset.submitting === "1") return;
       if (!cropper) {
+        if (window.AdminLoading) {
+          form.dataset.submitting = "1";
+          window.AdminLoading.show("Сохраняю…");
+        }
         form.submit();
         return;
       }
@@ -76,6 +81,10 @@
       if (wInput) wInput.value = data.width;
       if (hInput) hInput.value = data.height;
       closeStage();
+      if (window.AdminLoading) {
+        form.dataset.submitting = "1";
+        window.AdminLoading.show("Сохраняю…");
+      }
       form.submit();
     });
   }

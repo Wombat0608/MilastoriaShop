@@ -434,9 +434,26 @@ public class AdminController {
                 return;
             }
             double[] wm = loadWmDefaults(session);
+            List<LotImage> images = dedupeImagesByThumb(mapper.findImagesByLotId(lotId));
             render(ctx, "admin/photos.jte",
-                    new AdminPhotosView(lot, mapper.findImagesByLotId(lotId), null, wm[0], wm[1]));
+                    new AdminPhotosView(lot, images, null, wm[0], wm[1]));
         }
+    }
+
+    /** Убирает дубли path_thumb — один файл = одна карточка в UI. */
+    static List<LotImage> dedupeImagesByThumb(List<LotImage> images) {
+        if (images == null || images.isEmpty()) {
+            return images == null ? java.util.List.of() : images;
+        }
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        List<LotImage> out = new java.util.ArrayList<>();
+        for (LotImage img : images) {
+            String key = img.getPathThumb() == null ? "" : img.getPathThumb();
+            if (seen.add(key)) {
+                out.add(img);
+            }
+        }
+        return out;
     }
 
     /** Страница настроек watermark: файл + размер по умолчанию. */

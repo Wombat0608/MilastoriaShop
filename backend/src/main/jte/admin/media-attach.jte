@@ -30,6 +30,13 @@
             <p class="admin-notice">${view.notice()}</p>
         @endif
 
+        @if(view.hasQueue())
+            <p class="admin-hint">
+                В очереди ещё файлов: <strong>${view.queueCsv()}</strong>
+                — после прикрепления откроется следующий (кроп и watermark для каждого).
+            </p>
+        @endif
+
         <div class="media-attach-card">
             <div class="media-attach-card__preview">
                 @if(view.media().isVideo())
@@ -55,16 +62,17 @@
                 </div>
                 <p class="admin-hint">
                     @if(view.media().isVideo())
-                        Видео прикрепится к лоту как есть (без кропа/watermark). Файл уйдёт из медиатеки в папку лота.
+                        Видео прикрепится как есть (без кропа/watermark). Файл уйдёт из медиатеки в папку лота.
                     @else
-                        Для фото снова предложится кадрирование и наложение watermark. Оригинал из медиатеки после
-                        прикрепления будет удалён физически — на лоте останутся thumb/full.
+                        Для фото <strong>обязательны</strong> кроп и watermark (экран откроется сразу)
+                        либо явная кнопка «Без кропа» — тогда файл уйдёт целиком с WM по умолчанию.
                     @endif
                 </p>
             </div>
         </div>
 
         <form method="post" action="/admin/media/${view.media().getId()}/attach" id="attach-form" class="admin-form" style="margin-top:1.25rem"
+              data-kind="${view.media().isVideo() ? "video" : "image"}"
               data-loading-message="Прикрепляю файл к лоту…">
             <div class="lot-picker" id="attach-lot-picker">
                 <div class="lot-picker__head">
@@ -84,6 +92,7 @@
                 </div>
                 <input type="hidden" name="lot_id" id="attach-lot-id"
                        value="${view.selectedLotId() != null ? String.valueOf(view.selectedLotId()) : ""}">
+                <input type="hidden" name="queue" value="${view.queueCsv()}">
                 <div class="lot-picker__list" id="attach-lot-list" role="listbox" aria-label="Список лотов">
                     @for(AdminLotRow lot : view.lots())
                         <button type="button"
@@ -119,11 +128,13 @@
                 <input type="hidden" name="wm_y" id="wm-y">
                 <input type="hidden" name="wm_width" id="wm-width">
                 <input type="hidden" name="wm_opacity" id="wm-opacity-hidden" value="1">
+                <input type="hidden" name="no_crop" id="no_crop" value="">
             @endif
 
             <div class="admin-form__actions">
                 @if(view.media().isImage())
                     <button type="button" class="btn btn--line" id="attach-crop-open">Кадрировать и watermark</button>
+                    <button type="button" class="btn btn--line" id="attach-no-crop">Без кропа</button>
                     <button type="submit" class="btn btn--fill" id="attach-submit">Прикрепить</button>
                 @else
                     <button type="submit" class="btn btn--fill">Прикрепить видео к лоту</button>
@@ -150,8 +161,8 @@
                     </label>
                 </div>
                 <div class="crop-stage__actions">
-                    <button type="button" class="btn btn--line" id="crop-cancel">Без кропа / закрыть</button>
-                    <button type="button" class="btn btn--fill" id="crop-confirm">Готово</button>
+                    <button type="button" class="btn btn--line" id="crop-cancel">Без кропа</button>
+                    <button type="button" class="btn btn--fill" id="crop-confirm">Готово (кроп + WM)</button>
                 </div>
             </div>
 

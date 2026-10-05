@@ -12,5 +12,16 @@ public record MediaAttachView(MediaFile media,
                               String error,
                               String notice,
                               double defaultWmWidth,
-                              double defaultWmMargin) {
+                              double defaultWmMargin,
+                              String queueCsv) {
+
+    public MediaAttachView {
+        if (queueCsv == null) {
+            queueCsv = "";
+        }
+    }
+
+    public boolean hasQueue() {
+        return queueCsv != null && !queueCsv.isBlank();
+    }
 }

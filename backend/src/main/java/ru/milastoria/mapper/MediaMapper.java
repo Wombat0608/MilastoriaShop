@@ -19,5 +19,6 @@ public interface MediaMapper {
 
     int insert(MediaFile file);
 
-    void deleteById(@Param("id") long id);
+    /** Удаляет строку; возвращает число затронутых строк (0 = уже забрано). */
+    int deleteById(@Param("id") long id);
 }

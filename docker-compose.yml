@@ -5,7 +5,7 @@
 #   # заполните admin.password / admin.session_secret
 #   docker compose up -d --build
 #
-# DNS на Reg.ru: A-запись milastoria.ru → IP VPS (и www, если нужно).
+# DNS на Reg.ru: A milastoria.com → IP VPS (и www, если нужно).
 
 services:
   app:
@@ -17,7 +17,7 @@ services:
       # ENV имеет приоритет над app.yml — можно задать и здесь
       # ADMIN_PASSWORD: change-me
       # SESSION_SECRET: change-me-long-random
-      SITE_BASE_URL: https://milastoria.ru
+      SITE_BASE_URL: https://milastoria.com
       CONTENT_DIR: /app/data/content
       DB_PATH: /app/data/milastoria.db
     volumes:

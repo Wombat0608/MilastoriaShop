@@ -58,4 +58,11 @@ class MediaLibraryViewTest {
         assertEquals("видео", view.kindLabel(MediaFile.KIND_VIDEO));
         assertEquals("фото", view.kindLabel(MediaFile.KIND_IMAGE));
     }
+
+    @Test
+    void lotPickerHrefPointsToLotsPicker() {
+        MediaLibraryView free = new MediaLibraryView(
+                List.of(), null, null, 1, 24, 0, null, null, null, null);
+        assertEquals("/admin/media/lots", free.lotPickerHref());
+    }
 }

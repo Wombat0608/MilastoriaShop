@@ -1362,6 +1362,206 @@
   padding: 0.35rem 0.7rem;
 }
 
+/* ——— множественный выбор в медиатеке ——— */
+
+.media-bulk-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  box-shadow: 0 2px 8px rgba(24, 18, 12, 0.06);
+}
+
+.media-bulk-bar__info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.media-bulk-bar__count {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.media-bulk-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.media-bulk-bar__actions form {
+  margin: 0;
+}
+
+.media-bulk-bar__actions .btn {
+  min-height: 44px;
+  padding: 0.45rem 0.9rem;
+}
+
+.media-card--selectable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.media-card--selectable.is-selected,
+.media-card--selectable:has(.media-check:checked) {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.media-card__check {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.media-card__check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+
+/* ——— выбор лота: список вместо <select> ——— */
+
+.lot-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.lot-picker__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.lot-picker__head label {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.lot-picker__head input[type="search"] {
+  flex: 1 1 220px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.45rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.lot-picker__head input[type="search"]:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.lot-picker__selected {
+  width: 100%;
+  margin: 0;
+}
+
+.lot-picker__list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 360px;
+  overflow: auto;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  background: var(--paper-dim);
+}
+
+.lot-picker__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  min-height: 44px;
+}
+
+.lot-picker__item:hover {
+  border-color: var(--gold);
+}
+
+.lot-picker__item.is-selected {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+.lot-picker__title {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.lot-picker__meta {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.media-pick-form {
+  margin: 0;
+}
+
+.media-pick-form .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .media-bulk-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .media-bulk-bar__actions {
+    flex-direction: column;
+  }
+
+  .media-bulk-bar__actions form,
+  .media-bulk-bar__actions .btn,
+  .media-bulk-bar__actions button {
+    width: 100%;
+  }
+
+  .lot-picker__list {
+    max-height: 50vh;
+  }
+}
+
 .media-attach-card {
   display: grid;
   grid-template-columns: 180px 1fr;

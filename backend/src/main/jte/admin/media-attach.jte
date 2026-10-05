@@ -1,5 +1,5 @@
 @import ru.milastoria.view.MediaAttachView
-@import ru.milastoria.domain.Lot
+@import ru.milastoria.view.AdminLotRow
 @import ru.milastoria.domain.MediaFile
 
 @param MediaAttachView view
@@ -19,6 +19,7 @@
             <h1>Прикрепить к лоту</h1>
             <div class="admin-head__actions">
                 <a class="btn btn--line" href="/admin/media">В медиатеку</a>
+                <a class="btn btn--line" href="/admin/media/lots?mediaId=${view.media().getId()}">Выбрать лот</a>
             </div>
         </div>
 
@@ -64,19 +65,49 @@
         </div>
 
         <form method="post" action="/admin/media/${view.media().getId()}/attach" id="attach-form" class="admin-form" style="margin-top:1.25rem">
-            <label>
-                <span>Лот</span>
-                <select name="lot_id" id="attach-lot" required>
-                    <option value="">— выберите лот —</option>
-                    @for(Lot lot : view.lots())
-                        @if(view.selectedLotId() != null && view.selectedLotId() == lot.getId())
-                            <option value="${lot.getId()}" selected>${lot.getTitle()} (${lot.getSlug()})</option>
+            <div class="lot-picker" id="attach-lot-picker">
+                <div class="lot-picker__head">
+                    <label for="attach-lot-filter">Лот</label>
+                    <input id="attach-lot-filter" type="search"
+                           placeholder="поиск по заголовку / slug…"
+                           autocomplete="off"
+                           data-selected-lot-id="${view.selectedLotId() != null ? String.valueOf(view.selectedLotId()) : ""}"
+                           data-selected-lot-title="${view.selectedLotTitle() != null ? view.selectedLotTitle() : ""}">
+                    <span class="admin-hint lot-picker__selected" id="attach-lot-selected">
+                        @if(view.selectedLotId() != null && view.selectedLotTitle() != null)
+                            Выбрано: ${view.selectedLotTitle()} (#${view.selectedLotId()})
                         @else
-                            <option value="${lot.getId()}">${lot.getTitle()} (${lot.getSlug()})</option>
+                            Лот не выбран — найдите по названию
                         @endif
+                    </span>
+                </div>
+                <input type="hidden" name="lot_id" id="attach-lot-id"
+                       value="${view.selectedLotId() != null ? String.valueOf(view.selectedLotId()) : ""}">
+                <div class="lot-picker__list" id="attach-lot-list" role="listbox" aria-label="Список лотов">
+                    @for(AdminLotRow lot : view.lots())
+                        <button type="button"
+                                class="lot-picker__item${view.selectedLotId() != null && view.selectedLotId() == lot.getId() ? " is-selected" : ""}"
+                                role="option"
+                                aria-selected="${view.selectedLotId() != null && view.selectedLotId() == lot.getId() ? "true" : "false"}"
+                                data-lot-id="${lot.getId()}"
+                                data-search="${lot.getTitle()} ${lot.getSlug()} #${lot.getId()}">
+                            <span class="lot-picker__title">${lot.getTitle()}</span>
+                            <span class="lot-picker__meta">/${lot.getSlug()} · #${lot.getId()}
+                                @if(lot.getCategoryTitle() != null && !lot.getCategoryTitle().isBlank())
+                                    · ${lot.getCategoryTitle()}
+                                @endif
+                            </span>
+                        </button>
                     @endfor
-                </select>
-            </label>
+                    @if(view.lots().isEmpty())
+                        <div class="admin-empty">Лотов нет</div>
+                    @endif
+                </div>
+                <p class="admin-hint">
+                    Список длинный? Введите фрагмент заголовка или slug — отфильтруется мгновенно.
+                    <a href="/admin/media/lots?mediaId=${view.media().getId()}">Открыть отдельный экран поиска лота</a>.
+                </p>
+            </div>
 
             @if(view.media().isImage())
                 <input type="hidden" name="x" id="crop-x">
@@ -128,5 +159,6 @@
             <script src="/js/admin-crop-wm.js"></script>
             <script src="/js/admin-media-attach.js"></script>
         @endif
+        <script src="/js/admin-lot-picker.js"></script>
     `
 )

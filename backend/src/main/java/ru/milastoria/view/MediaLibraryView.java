@@ -2,10 +2,13 @@ package ru.milastoria.view;
 
 import ru.milastoria.domain.MediaFile;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Медиатека: список файлов + режим прикрепления к лоту.
+ * lotId != null — пришли с карточки лота; mediaIds для batch — не здесь,
+ * они в DOM/форме страницы.
+ */
 public record MediaLibraryView(List<MediaFile> files,
                                String query,
                                String kind,
@@ -60,10 +63,10 @@ public record MediaLibraryView(List<MediaFile> files,
     public String pageQuery(int targetPage) {
         StringBuilder sb = new StringBuilder("page=").append(targetPage);
         if (query != null && !query.isBlank()) {
-            sb.append("&q=").append(encode(query.trim()));
+            sb.append("&q=").append(TextUtil.urlEncode(query.trim()));
         }
         if (kind != null && !kind.isBlank()) {
-            sb.append("&kind=").append(encode(kind));
+            sb.append("&kind=").append(TextUtil.urlEncode(kind));
         }
         if (targetingLot()) {
             sb.append("&lotId=").append(lotId);
@@ -71,16 +74,20 @@ public record MediaLibraryView(List<MediaFile> files,
         return sb.toString();
     }
 
-    /** Ссылка attach с учётом лота, из которого пришли. */
+    /** Ссылка выбора лота (batch: нужен выбранный набор медиа в DOM). */
+    public String lotPickerHref() {
+        if (targetingLot()) {
+            return "/admin/media/lots?q=";
+        }
+        return "/admin/media/lots";
+    }
+
+    /** Ссылка attach одного файла (кроп) — с предвыбором лота. */
     public String attachHref(long mediaId) {
         String href = "/admin/media/" + mediaId + "/attach";
         if (targetingLot()) {
             href += "?lotId=" + lotId;
         }
         return href;
-    }
-
-    private static String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

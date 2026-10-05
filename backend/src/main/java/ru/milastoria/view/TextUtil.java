@@ -1,5 +1,8 @@
 package ru.milastoria.view;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 public final class TextUtil {
 
     private TextUtil() {
@@ -15,5 +18,9 @@ public final class TextUtil {
             return n + " работы";
         }
         return n + " работ";
+    }
+
+    public static String urlEncode(String value) {
+        return value == null ? "" : URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

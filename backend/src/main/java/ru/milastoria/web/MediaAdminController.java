@@ -20,8 +20,11 @@ import ru.milastoria.mapper.MediaMapper;
 import ru.milastoria.mapper.SettingsMapper;
 import ru.milastoria.media.ExifData;
 import ru.milastoria.media.ExifReader;
+import ru.milastoria.util.Fts;
+import ru.milastoria.view.AdminLotRow;
 import ru.milastoria.view.MediaAttachView;
 import ru.milastoria.view.MediaLibraryView;
+import ru.milastoria.view.MediaLotPickerView;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -39,14 +42,15 @@ import java.util.UUID;
 
 /**
  * Медиатека админки: загрузка фото/видео с телефона (пачкой),
- * EXIF-даты, список с пагинацией/поиском, прикрепление к лоту
- * (фото — с повторным кропом и watermark; видео — как есть).
- * После attach файл физически удаляется из медиатеки вместе с записью.
+ * EXIF-даты, список с пагинацией/поиском, прикрепление к лоту.
+ * Выбор лота — отдельный список с поиском (не select на 200+ строк).
+ * Множественный attach — checkbox на карточках + POST /admin/media/attach-batch.
  */
 public class MediaAdminController {
 
     private static final Logger log = LoggerFactory.getLogger(MediaAdminController.class);
     public static final int PAGE_SIZE = 24;
+    public static final int LOT_PICKER_PAGE_SIZE = 50;
 
     private static final List<String> IMAGE_EXTS = List.of(
             ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif", ".avif", ".bmp");
@@ -275,6 +279,151 @@ public class MediaAdminController {
 
     // ─────────────── attach к лоту ───────────────
 
+    /**
+     * Список лотов для выбора: поиск (FTS) + пагинация.
+     * ?mediaIds=1,2,3 — после выбора лота пойдёт batch-attach.
+     * ?mediaId=5 — после выбора лота откроется форма кропа одного файла.
+     */
+    public void lotPickerPage(Context ctx) {
+        String query = normalize(ctx.queryParam("q"));
+        String ftsQuery = Fts.toMatchExpression(query);
+        int page = parsePage(ctx.queryParam("page"));
+        String error = ctx.queryParam("error");
+        String notice = ctx.queryParam("notice");
+        List<Long> mediaIds = parseIdList(ctx.queryParam("mediaIds"));
+        Long mediaId = parseLongOrNull(ctx.queryParam("mediaId"));
+
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            LotMapper lotMapper = session.getMapper(LotMapper.class);
+            List<AdminLotRow> all = (ftsQuery == null)
+                    ? lotMapper.findAllAdmin(List.of())
+                    : lotMapper.searchAdmin(ftsQuery, List.of());
+            int total = all.size();
+            int totalPages = Math.max(1, (total + LOT_PICKER_PAGE_SIZE - 1) / LOT_PICKER_PAGE_SIZE);
+            if (page > totalPages) {
+                page = totalPages;
+            }
+            int from = Math.min(total, (page - 1) * LOT_PICKER_PAGE_SIZE);
+            int to = Math.min(total, from + LOT_PICKER_PAGE_SIZE);
+            List<AdminLotRow> pageRows = all.subList(from, to);
+            render(ctx, "admin/media-lots.jte",
+                    new MediaLotPickerView(pageRows, query, mediaIds, mediaId, null,
+                            error, notice, page, LOT_PICKER_PAGE_SIZE, total));
+        }
+    }
+
+    /** Выбор лота после списка: batch-attach или форма кропа одного файла. */
+    public void pickLot(Context ctx) {
+        long lotId = Long.parseLong(ctx.pathParam("lotId"));
+        List<Long> mediaIds = parseIdList(ctx.queryParam("mediaIds"));
+        Long mediaId = parseLongOrNull(ctx.queryParam("mediaId"));
+        if (!mediaIds.isEmpty()) {
+            doBatchAttach(ctx, lotId, mediaIds);
+            return;
+        }
+        if (mediaId != null) {
+            ctx.redirect("/admin/media/" + mediaId + "/attach?lotId=" + lotId);
+            return;
+        }
+        ctx.redirect("/admin/media?lotId=" + lotId);
+    }
+
+    /** POST: прикрепить несколько файлов из медиатеки к одному лоту. */
+    public void attachBatch(Context ctx) {
+        Long lotId = parseLongOrNull(ctx.pathParam("lotId"));
+        if (lotId == null) {
+            lotId = parseLongOrNull(ctx.formParam("lot_id"));
+        }
+        List<Long> mediaIds = collectMediaIds(ctx);
+        if (lotId == null) {
+            ctx.redirect("/admin/media/lots?error=" + urlEncode("Выберите лот"));
+            return;
+        }
+        if (mediaIds.isEmpty()) {
+            ctx.redirect("/admin/media?lotId=" + lotId + "&error=" + urlEncode("Отметьте хотя бы один файл"));
+            return;
+        }
+        doBatchAttach(ctx, lotId, mediaIds);
+    }
+
+    private static List<Long> collectMediaIds(Context ctx) {
+        List<String> raw = ctx.formParams("media_ids");
+        if (raw == null || raw.isEmpty()) {
+            String single = ctx.formParam("media_ids");
+            raw = single == null ? List.of() : List.of(single);
+        }
+        List<Long> ids = new ArrayList<>();
+        for (String value : raw) {
+            for (Long id : parseIdList(value)) {
+                if (!ids.contains(id)) {
+                    ids.add(id);
+                }
+            }
+        }
+        return ids;
+    }
+
+    private static String csv(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Long id : ids) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(id);
+        }
+        return sb.toString();
+    }
+
+    private void doBatchAttach(Context ctx, long lotId, List<Long> mediaIds) {
+        int ok = 0;
+        List<String> errors = new ArrayList<>();
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            MediaMapper mediaMapper = session.getMapper(MediaMapper.class);
+            LotMapper lotMapper = session.getMapper(LotMapper.class);
+            Lot lot = lotMapper.findById(lotId);
+            if (lot == null) {
+                ctx.redirect("/admin/media/lots?error=" + urlEncode("Лот не найден")
+                        + "&mediaIds=" + urlEncode(csv(mediaIds)));
+                return;
+            }
+            double[] wm = loadWmDefaults(session);
+            WatermarkPlacement placement = WatermarkPlacement.defaults(wm[0], wm[1], 1.0);
+
+            for (Long mediaId : mediaIds) {
+                MediaFile media = mediaMapper.findById(mediaId);
+                if (media == null) {
+                    errors.add("#" + mediaId + ": не найден");
+                    continue;
+                }
+                try {
+                    if (media.isVideo()) {
+                        attachVideo(lotMapper, lot, media);
+                    } else {
+                        attachImage(session, lotMapper, lot, media, mediaCrop(media), placement);
+                    }
+                    deleteMediaFiles(media);
+                    mediaMapper.deleteById(media.getId());
+                    ok++;
+                } catch (IOException | InterruptedException e) {
+                    log.error("Batch attach: медиа {} → лот {}", mediaId, lotId, e);
+                    errors.add("#" + mediaId + ": " + humanImageError(e));
+                }
+            }
+        }
+
+        String summary = ok + " файл(ов) прикреплено";
+        if (!errors.isEmpty()) {
+            summary += ". Ошибки: " + String.join("; ", errors);
+            ctx.redirect("/admin/media/lots?error=" + urlEncode(summary)
+                    + "&mediaIds=" + urlEncode(csv(mediaIds)));
+            return;
+        }
+        ctx.redirect("/admin/lots/" + lotId + "/photos?notice=" + urlEncode(summary));
+    }
+
     public void attachForm(Context ctx) {
         long id = Long.parseLong(ctx.pathParam("id"));
         Long lotId = parseLongOrNull(ctx.queryParam("lotId"));
@@ -289,10 +438,20 @@ public class MediaAdminController {
                 return;
             }
             LotMapper lotMapper = session.getMapper(LotMapper.class);
-            List<Lot> lots = lotMapper.findAll();
+            List<AdminLotRow> lots = lotMapper.findAllAdmin(List.of());
+            String lotTitle = null;
+            if (lotId != null) {
+                Lot lot = lotMapper.findById(lotId);
+                if (lot == null) {
+                    lotId = null;
+                } else {
+                    lotTitle = lot.getTitle();
+                }
+            }
             double[] wm = loadWmDefaults(session);
             render(ctx, "admin/media-attach.jte",
-                    new MediaAttachView(media, lots, lotId, error, notice, wm[0], wm[1]));
+                    new MediaAttachView(media, lots, lotId, lotTitle, error, notice,
+                            wm[0], wm[1]));
         }
     }
 
@@ -323,9 +482,14 @@ public class MediaAdminController {
                 if (media.isVideo()) {
                     attachVideo(lotMapper, lot, media);
                 } else {
-                    attachImage(session, lotMapper, lot, media, ctx);
+                    CropRect crop = readCropRect(ctx);
+                    if (crop == null) {
+                        crop = mediaCrop(media);
+                    }
+                    double[] wmDefaults = loadWmDefaults(session);
+                    WatermarkPlacement placement = readWmPlacement(ctx, wmDefaults);
+                    attachImage(session, lotMapper, lot, media, crop, placement);
                 }
-                // физически убираем из медиатеки (требование: файл + запись)
                 deleteMediaFiles(media);
                 mediaMapper.deleteById(media.getId());
             } catch (IOException | InterruptedException e) {
@@ -343,17 +507,16 @@ public class MediaAdminController {
                              LotMapper lotMapper,
                              Lot lot,
                              MediaFile media,
-                             Context ctx) throws IOException, InterruptedException {
+                             CropRect crop,
+                             WatermarkPlacement placement) throws IOException, InterruptedException {
         Path original = resolveContentPath(media.getPath());
         if (!Files.isRegularFile(original)) {
             throw new IOException("Файл на диске не найден: " + media.getPath());
         }
-
-        CropRect crop = readCropRect(ctx);
-        if (crop == null) {
-            crop = mediaCrop(media);
+        if (placement == null) {
+            double[] wm = loadWmDefaults(session);
+            placement = WatermarkPlacement.defaults(wm[0], wm[1], 1.0);
         }
-        WatermarkPlacement placement = readWmPlacement(ctx, loadWmDefaults(session));
 
         int nextSort = lotMapper.findImagesByLotId(lot.getId()).stream()
                 .mapToInt(LotImage::getSort).max().orElse(0) + 1;
@@ -396,7 +559,6 @@ public class MediaAdminController {
         Files.createDirectories(dest.getParent());
         Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
 
-        // постер для <video poster=…> на сайте
         String posterPublic = null;
         Path posterOut = contentDir.resolve("img").resolve(lot.getSlug() + "__v" + n + "__poster.jpg");
         try {
@@ -417,6 +579,20 @@ public class MediaAdminController {
         video.setPosterPath(posterPublic);
         video.setCaption("Видео-фрагмент: " + lot.getTitle());
         lotMapper.insertVideo(video);
+    }
+
+    private static List<Long> parseIdList(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        List<Long> ids = new ArrayList<>();
+        for (String part : raw.split("[,\\s]+")) {
+            Long id = parseLongOrNull(part);
+            if (id != null && !ids.contains(id)) {
+                ids.add(id);
+            }
+        }
+        return ids;
     }
 
     // ─────────────── helpers ───────────────

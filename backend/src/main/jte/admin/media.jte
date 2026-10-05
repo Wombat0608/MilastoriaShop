@@ -10,14 +10,21 @@
         <div class="section-head admin-head">
             <h1>Медиатека</h1>
             <div class="admin-head__actions">
+                <a class="btn btn--line" href="/admin/media/lots">Выбрать лот</a>
                 <a class="btn btn--line" href="/admin">Лоты</a>
             </div>
         </div>
 
         @if(view.targetingLot())
             <p class="admin-notice">
-                Прикрепление файлов к лоту: <strong>${view.lotTitle()}</strong> (#${view.lotId()})
-                — выберите файл в списке и нажмите «Прикрепить».
+                Прикрепление к лоту: <strong>${view.lotTitle()}</strong> (#${view.lotId()})
+                — отметьте файлы и нажмите «Прикрепить выбранные».
+            </p>
+        @else
+            <p class="admin-hint" style="margin-bottom:0.75rem">
+                Отметьте нужные файлы checkbox'ами и прикрепите к лоту:
+                можно выбрать сразу несколько.
+                Для точного кропа откройте один файл кнопкой «Кроп / watermark».
             </p>
         @endif
 
@@ -76,6 +83,35 @@
             </div>
         </form>
 
+        <div class="media-bulk-bar" id="media-bulk-bar" hidden>
+            <div class="media-bulk-bar__info">
+                <label class="admin-cat-check">
+                    <input type="checkbox" id="media-select-all">
+                    <span>Все на странице</span>
+                </label>
+                <span class="media-bulk-bar__count" id="media-bulk-count">0 выбрано</span>
+            </div>
+            <div class="media-bulk-bar__actions">
+                @if(view.targetingLot())
+                    <form method="post" action="/admin/media/attach-batch" id="media-batch-form">
+                        <input type="hidden" name="lot_id" value="${view.lotId()}">
+                        <button type="submit" class="btn btn--fill" id="media-batch-submit"
+                                data-confirm="Прикрепить выбранные файлы к лоту? Файлы уйдут из медиатеки в папку лота.">
+                            Прикрепить выбранные к лоту
+                        </button>
+                    </form>
+                @else
+                    <form method="get" action="/admin/media/lots" id="media-batch-form">
+                        <input type="hidden" name="mediaIds" id="media-batch-ids" value="">
+                        <button type="submit" class="btn btn--fill" id="media-batch-submit">
+                            Прикрепить выбранные к лоту…
+                        </button>
+                    </form>
+                @endif
+                <button type="button" class="btn btn--line" id="media-select-none">Снять выбор</button>
+            </div>
+        </div>
+
         <div class="admin-meta" style="margin:0.5rem 0 0.75rem">
             Файлов: ${view.total()} · стр. ${view.page()} из ${view.totalPages()}
         </div>
@@ -89,10 +125,15 @@
                 @endif
             </div>
         @else
-            <div class="media-grid">
+            <div class="media-grid" id="media-grid"
+                 data-lot-id="${view.lotId() != null ? String.valueOf(view.lotId()) : ""}">
                 @for(MediaFile f : view.files())
-                    <article class="media-card" data-media-id="${f.getId()}" data-kind="${f.getKind()}">
+                    <article class="media-card media-card--selectable" data-media-id="${f.getId()}" data-kind="${f.getKind()}">
                         <div class="media-card__preview">
+                            <label class="media-card__check" title="Выбрать файл">
+                                <input type="checkbox" class="media-check" value="${f.getId()}"
+                                       aria-label="Выбрать ${f.getOriginalName()}">
+                            </label>
                             @if(f.isVideo())
                                 <div class="media-card__video-badge">видео</div>
                                 @if(f.getThumbPath() != null && !f.getThumbPath().isBlank())
@@ -119,13 +160,7 @@
                                 <span>${view.kindLabel(f.getKind())}</span>
                             </div>
                             <div class="media-card__actions">
-                                <a class="btn btn--fill" href="${view.attachHref(f.getId())}">
-                                    @if(view.targetingLot())
-                                        К этому лоту
-                                    @else
-                                        Прикрепить к лоту
-                                    @endif
-                                </a>
+                                <a class="btn btn--line" href="${view.attachHref(f.getId())}">Кроп / watermark</a>
                                 <form method="post" action="/admin/media/${f.getId()}/delete"
                                       data-confirm="Удалить файл из медиатеки?">
                                     <input type="hidden" name="back" value="/admin/media?${view.pageQuery(view.page())}">
@@ -154,7 +189,6 @@
             </nav>
         @endif
 
-        <!-- последовательный кроп: без watermark -->
         <div class="crop-stage" id="media-crop-stage" hidden>
             <div class="crop-stage__image-wrap" id="media-crop-wrap">
                 <img id="media-crop-image" alt="">
@@ -168,5 +202,6 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
         <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
         <script src="/js/admin-media-upload.js"></script>
+        <script src="/js/admin-media-select.js"></script>
     `
 )

@@ -180,6 +180,10 @@ public class App {
 
         app.get("/admin/lots/{id}/photos", admin::photosPage);
         app.get("/admin/media", mediaAdmin::listPage);
+        app.get("/admin/media/lots", mediaAdmin::lotPickerPage);
+        app.get("/admin/media/lots/{lotId}/pick", mediaAdmin::pickLot);
+        app.post("/admin/media/lots/{lotId}/attach-selected", mediaAdmin::attachBatch);
+        app.post("/admin/media/attach-batch", mediaAdmin::attachBatch);
         app.post("/admin/media/upload", mediaAdmin::upload);
         app.post("/admin/media/{id}/delete", mediaAdmin::delete);
         app.get("/admin/media/{id}/attach", mediaAdmin::attachForm);

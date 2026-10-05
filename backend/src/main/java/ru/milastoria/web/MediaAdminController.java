@@ -313,9 +313,11 @@ public class MediaAdminController {
     }
 
     /** POST: прикрепить несколько файлов из медиатеки к одному лоту.
-     *  Фото — через очередь кропа/WM (по одному); видео — batch. */
+     *  Роуты: /admin/media/attach-batch (lot_id в форме)
+     *         /admin/media/lots/{lotId}/attach-selected (lotId в пути).
+     *  pathParam бросает, если параметра нет в пути — берём только form. */
     public void attachBatch(Context ctx) {
-        Long lotId = parseLongOrNull(ctx.pathParam("lotId"));
+        Long lotId = safePathParam(ctx, "lotId");
         if (lotId == null) {
             lotId = parseLongOrNull(ctx.formParam("lot_id"));
         }
@@ -377,6 +379,15 @@ public class MediaAdminController {
         }
         ctx.redirect("/admin/lots/" + lotId + "/photos?notice="
                 + urlEncode("Прикреплено видео: " + videoOk));
+    }
+
+    /** Javalin pathParam() кидает, если параметра нет в шаблоне роута. */
+    private static Long safePathParam(Context ctx, String name) {
+        try {
+            return parseLongOrNull(ctx.pathParam(name));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private int attachVideosBatch(Context ctx, long lotId, List<Long> videoIds, List<String> errors) {

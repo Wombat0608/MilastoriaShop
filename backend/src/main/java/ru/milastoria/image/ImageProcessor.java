@@ -35,6 +35,13 @@ public class ImageProcessor {
     /** Желаемый потолок размера «оригинала» в медиатеке (~3 МБ). */
     public static final long MEDIA_ORIGINAL_MAX_BYTES = 3L * 1024 * 1024;
 
+    /** Настройки сжатия больших фото в медиатеке (settings в БД). */
+    public record MediaCompressOptions(long maxBytes, int minQuality, int maxEdge) {
+        public static MediaCompressOptions defaults() {
+            return new MediaCompressOptions(3L * 1024 * 1024, 82, 4000);
+        }
+    }
+
     private final String convertBinary;
     private final Path watermarkFile;
 
@@ -83,14 +90,14 @@ public class ImageProcessor {
     }
 
     /**
-     * Если файл в медиатеку больше {@code maxBytes} (~3 МБ) — пережимаем
-     * в JPEG примерно до этого размера (ImageMagick jpeg:extent, затем
-     * quality-ladder). Видео и файлы ≤ maxBytes не трогаем.
-     * Возвращает путь к файлу (исходный или новый .jpg); исходник при
-     * успешном сжатии удаляется.
+     * Если файл в медиатеку больше maxBytes — пережимаем в JPEG примерно
+     * до этого размера. Алгоритм: сначала только quality (без resize),
+     * затем при необходимости Lanczos-resize. Без агрессивного «сжатия
+     * в лесенку»: стартуем с высокого quality, минимум — minQuality.
      */
-    public Path ensureMediaOriginalSize(Path source, long maxBytes)
+    public Path ensureMediaOriginalSize(Path source, MediaCompressOptions opts)
             throws IOException, InterruptedException {
+        long maxBytes = opts.maxBytes();
         if (!Files.isRegularFile(source) || Files.size(source) <= maxBytes) {
             return source;
         }
@@ -102,56 +109,86 @@ public class ImageProcessor {
 
         Path out = source.resolveSibling(source.getFileName().toString()
                 .replaceAll("\\.[^.]+$", "") + "__c.jpg");
+        int minQ = Math.max(40, Math.min(95, opts.minQuality()));
+        int maxEdge = Math.max(800, Math.min(8000, opts.maxEdge()));
 
-        // 1) IM: jpeg:extent — качество подбирается автоматически под размер
-        String extentMb = String.valueOf(Math.max(1, maxBytes / (1024 * 1024)));
-        try {
-            run(List.of(
-                    convertBinary, source.toString(),
-                    "-auto-orient", "-strip",
-                    "-define", "jpeg:extent=" + extentMb + "mb",
-                    out.toString()));
-            if (Files.isRegularFile(out) && Files.size(out) > 0
-                    && Files.size(out) <= (long) (maxBytes * 1.08)) {
-                Files.deleteIfExists(source);
-                return out;
-            }
-        } catch (IOException e) {
-            // jpeg:extent может не поддерживаться — пробуем лестницу качества
+        // Фаза 1: только quality, без resize — сохраняем пиксели и цвет
+        Path best = tryQualityLadder(source, out, maxBytes, minQ, maxEdge, false);
+        if (best != null) {
+            Files.deleteIfExists(source);
+            return best;
         }
 
-        // 2) quality-ladder + мягкий упор по стороне (не увеличиваем)
-        int[] qualities = {88, 84, 80, 76, 72, 68, 64, 60, 55, 50, 45, 40};
+        // Фаза 2: resize Lanczos + quality (если даже quality=min не влезает)
+        best = tryQualityLadder(source, out, maxBytes, minQ, maxEdge, true);
+        if (best != null) {
+            Files.deleteIfExists(source);
+            return best;
+        }
+
+        // Лучший результат всё же меньше исходника — оставляем его
+        if (Files.isRegularFile(out) && Files.size(out) > 0 && Files.size(out) < Files.size(source)) {
+            Files.deleteIfExists(source);
+            return out;
+        }
+        Files.deleteIfExists(out);
+        return source;
+    }
+
+    /** @return путь ≤ maxBytes; иначе null (или best-effort, если он меньше maxBytes*1.2) */
+    private Path tryQualityLadder(Path source, Path out, long maxBytes,
+                                  int minQuality, int maxEdge, boolean resize)
+            throws IOException, InterruptedException {
+        int[] qualities = {92, 90, 88, 86, 84, 82, 80, 78, 76, 74, 72, 70, 68, 65, 60};
+        Path best = null;
         long bestSize = Long.MAX_VALUE;
         for (int q : qualities) {
+            if (q < minQuality) break;
             Files.deleteIfExists(out);
-            run(List.of(
-                    convertBinary, source.toString(),
-                    "-auto-orient", "-strip",
-                    "-interlace", "Plane",
-                    "-resize", "4000x4000>",
-                    "-quality", String.valueOf(q),
-                    out.toString()));
+            List<String> cmd = new ArrayList<>();
+            cmd.add(convertBinary);
+            cmd.add(source.toString());
+            cmd.add("-auto-orient");
+            if (resize) {
+                cmd.add("-filter");
+                cmd.add("Lanczos");
+                cmd.add("-resize");
+                cmd.add(maxEdge + "x" + maxEdge + ">");
+            }
+            cmd.add("-strip");
+            cmd.add("-define");
+            cmd.add("jpeg:fancy-upsampling=on");
+            cmd.add("-define");
+            cmd.add("jpeg:dct-method=Float");
+            cmd.add("-interlace");
+            cmd.add("Plane");
+            cmd.add("-quality");
+            cmd.add(String.valueOf(q));
+            cmd.add(out.toString());
+            run(cmd);
             if (!Files.isRegularFile(out) || Files.size(out) <= 0) {
                 continue;
             }
             long sz = Files.size(out);
             if (sz < bestSize) {
                 bestSize = sz;
+                best = out;
             }
             if (sz <= maxBytes) {
-                Files.deleteIfExists(source);
                 return out;
             }
         }
-
-        // лучший вариант всё же меньше исходника — оставляем его
-        if (Files.isRegularFile(out) && bestSize < Files.size(source)) {
-            Files.deleteIfExists(source);
-            return out;
+        // близко к лимиту — лучше такой файл, чем исходник 50 МБ
+        if (best != null && bestSize <= (long) (maxBytes * 1.2)) {
+            return best;
         }
-        Files.deleteIfExists(out);
-        return source;
+        return null;
+    }
+
+    /** @deprecated используйте {@link #ensureMediaOriginalSize(Path, MediaCompressOptions)} */
+    public Path ensureMediaOriginalSize(Path source, long maxBytes)
+            throws IOException, InterruptedException {
+        return ensureMediaOriginalSize(source, new MediaCompressOptions(maxBytes, 82, 4000));
     }
 
     private List<String> buildCommand(Path source, CropRect crop, Variant variant, Path out,

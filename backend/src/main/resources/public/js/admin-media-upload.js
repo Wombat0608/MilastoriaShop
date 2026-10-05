@@ -1,8 +1,7 @@
 /* Медиатека: выбор файлов пачкой → кроп фото (или сразу upload) → POST.
-   Ключевые правила:
-   - fetch ВСЕГДА уходит (даже без Cropper / при ошибке кропа);
-   - «Готово» без cropper = загрузка целиком;
-   - AdminLoading берём в момент вызова (скрипты грузятся в разном порядке). */
+   Вертушка (AdminLoading) — только на время сетевого запроса.
+   Кроп-экран показывается БЕЗ модалки, иначе overlay перекрывает UI.
+   После каждого файла модалка снимается (hideLoading). */
 
 (function () {
   var input = document.getElementById("media-files");
@@ -53,8 +52,11 @@
       loadingToken = null;
       return;
     }
-    if (loadingToken && a.hide) a.hide(loadingToken);
-    else if (a.hideAll) a.hideAll();
+    if (loadingToken && a.hide) {
+      a.hide(loadingToken);
+    } else if (a.hideAll) {
+      a.hideAll();
+    }
     loadingToken = null;
   }
 
@@ -96,9 +98,12 @@
   function finishFile(err) {
     uploading = false;
     busy = false;
+    // модалка всегда закрывается между файлами — иначе перекрывает кроп следующего
+    hideLoading();
     index += 1;
     if (err) {
-      setStatus("Ошибка (" + (queue[index - 1] && queue[index - 1].name || "?") + "): " + err.message);
+      var failed = queue[index - 1];
+      setStatus("Ошибка (" + (failed && failed.name || "?") + "): " + err.message);
     }
     processNext();
   }
@@ -106,8 +111,9 @@
   function openCrop(file) {
     cropFailed = false;
     closeStage();
+    // интерактивный кроп — без «вертушки»
+    hideLoading();
 
-    // Cropper CDN недоступен (VPN/сеть) — сразу грузим без кропа
     if (typeof Cropper === "undefined") {
       setStatus("Cropper недоступен — загружаю без кропа: " + file.name);
       showLoading("Загружаю " + file.name + "…");
@@ -153,7 +159,7 @@
         });
       } catch (e) {
         cropper = null;
-        setStatus("Кроп недоступен — нажмите «Пропустить» или «Загрузить целиком»");
+        setStatus("Кроп недоступен — нажмите «Пропустить»");
       }
     };
     var url = URL.createObjectURL(file);
@@ -176,7 +182,8 @@
 
     if (isImage(file)) {
       busy = true;
-      setStatus("Фото " + n + " из " + total + ": " + file.name + " — выберите кроп или пропустите");
+      hideLoading(); // кроп следующего файла — без overlay
+      setStatus("Фото " + n + " из " + total + ": " + file.name + " — кроп или пропуск");
       openCrop(file);
       return;
     }
@@ -217,7 +224,6 @@
           crop = null;
         }
       }
-      // без cropper / с ошибкой — всё равно отправляем (целиком)
       submitUpload(crop);
     });
   }
@@ -242,7 +248,6 @@
     busy = true;
     setStatus("Выбрано файлов: " + files.length + " — начинаю");
     processNext();
-    // чтобы можно было выбрать те же файлы снова
     input.value = "";
   });
 })();

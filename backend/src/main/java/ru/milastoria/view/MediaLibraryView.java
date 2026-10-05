@@ -5,9 +5,7 @@ import ru.milastoria.domain.MediaFile;
 import java.util.List;
 
 /**
- * Медиатека: список файлов + режим прикрепления к лоту.
- * lotId != null — пришли с карточки лота; mediaIds для batch — не здесь,
- * они в DOM/форме страницы.
+ * Медиатека: список файлов + режим прикрепления + настройки сжатия.
  */
 public record MediaLibraryView(List<MediaFile> files,
                                String query,
@@ -18,7 +16,16 @@ public record MediaLibraryView(List<MediaFile> files,
                                String error,
                                String notice,
                                Long lotId,
-                               String lotTitle) {
+                               String lotTitle,
+                               String compressMaxMb,
+                               String compressMinQuality,
+                               String compressMaxEdge) {
+
+    public MediaLibraryView {
+        if (compressMaxMb == null || compressMaxMb.isBlank()) compressMaxMb = "3";
+        if (compressMinQuality == null || compressMinQuality.isBlank()) compressMinQuality = "82";
+        if (compressMaxEdge == null || compressMaxEdge.isBlank()) compressMaxEdge = "4000";
+    }
 
     public int totalPages() {
         if (pageSize <= 0) {
@@ -59,7 +66,6 @@ public record MediaLibraryView(List<MediaFile> files,
         return "фото";
     }
 
-    /** Query-string для ссылок пагинации/back: q/kind/lotId с URL-кодированием. */
     public String pageQuery(int targetPage) {
         StringBuilder sb = new StringBuilder("page=").append(targetPage);
         if (query != null && !query.isBlank()) {
@@ -74,7 +80,6 @@ public record MediaLibraryView(List<MediaFile> files,
         return sb.toString();
     }
 
-    /** Ссылка выбора лота (batch: нужен выбранный набор медиа в DOM). */
     public String lotPickerHref() {
         if (targetingLot()) {
             return "/admin/media/lots?q=";
@@ -82,12 +87,15 @@ public record MediaLibraryView(List<MediaFile> files,
         return "/admin/media/lots";
     }
 
-    /** Ссылка attach одного файла (кроп) — с предвыбором лота. */
     public String attachHref(long mediaId) {
         String href = "/admin/media/" + mediaId + "/attach";
         if (targetingLot()) {
             href += "?lotId=" + lotId;
         }
         return href;
+    }
+
+    public String backQuery() {
+        return pageQuery(page);
     }
 }

@@ -105,10 +105,54 @@ public class MediaAdminController {
                     lotTitle = lot.getTitle();
                 }
             }
+            ImageProcessor.MediaCompressOptions co = loadCompressOptions(session);
             render(ctx, "admin/media.jte",
                     new MediaLibraryView(files, query, kind, page, PAGE_SIZE, total, error, notice,
-                            lotId, lotTitle));
+                            lotId, lotTitle,
+                            String.valueOf(co.maxBytes() / (1024 * 1024)),
+                            String.valueOf(co.minQuality()),
+                            String.valueOf(co.maxEdge())));
         }
+    }
+
+    private static ImageProcessor.MediaCompressOptions loadCompressOptions(SqlSession session) {
+        SettingsMapper settings = session.getMapper(SettingsMapper.class);
+        long maxMb = parseLong(settings.get("media_compress_max_mb"), 3);
+        int minQ = (int) parseLong(settings.get("media_compress_min_quality"), 82);
+        int maxEdge = (int) parseLong(settings.get("media_compress_max_edge"), 4000);
+        maxMb = Math.max(1, Math.min(20, maxMb));
+        minQ = Math.max(40, Math.min(95, minQ));
+        maxEdge = Math.max(800, Math.min(8000, maxEdge));
+        return new ImageProcessor.MediaCompressOptions(maxMb * 1024 * 1024, minQ, maxEdge);
+    }
+
+    private static long parseLong(String raw, long fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Long.parseLong(raw.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    public void saveCompressSettings(Context ctx) {
+        long maxMb = parseLong(ctx.formParam("media_compress_max_mb"), 3);
+        long minQ = parseLong(ctx.formParam("media_compress_min_quality"), 82);
+        long maxEdge = parseLong(ctx.formParam("media_compress_max_edge"), 4000);
+        maxMb = Math.max(1, Math.min(20, maxMb));
+        minQ = Math.max(40, Math.min(95, minQ));
+        maxEdge = Math.max(800, Math.min(8000, maxEdge));
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            SettingsMapper settings = session.getMapper(SettingsMapper.class);
+            settings.put("media_compress_max_mb", String.valueOf(maxMb));
+            settings.put("media_compress_min_quality", String.valueOf(minQ));
+            settings.put("media_compress_max_edge", String.valueOf(maxEdge));
+        }
+        String qs = normalize(ctx.formParam("back"));
+        String back = (qs != null && qs.startsWith("/admin/media")) ? qs : "/admin/media";
+        ctx.redirect(back + "?notice=" + urlEncode("Настройки сжатия медиатеки сохранены"));
     }
 
     // ─────────────── загрузка одного файла (пачкой из JS) ───────────────
@@ -168,13 +212,14 @@ public class MediaAdminController {
             long sizeBefore = Files.size(original);
             if (MediaFile.KIND_IMAGE.equals(kind)) {
                 Path before = original;
-                try {
-                    original = imageProcessor.ensureMediaOriginalSize(
-                            original, ImageProcessor.MEDIA_ORIGINAL_MAX_BYTES);
+                try (SqlSession optSession = sqlSessionFactory.openSession()) {
+                    ImageProcessor.MediaCompressOptions co = loadCompressOptions(optSession);
+                    original = imageProcessor.ensureMediaOriginalSize(original, co);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    // сжатие необязательно — оставляем файл как есть
                     log.warn("Прервано сжатие медиафайла {}", originalName);
+                } catch (Exception e) {
+                    log.warn("Сжатие медиафайла {} не выполнено: {}", originalName, e.getMessage());
                 }
                 compressed = !original.equals(before) || Files.size(original) < sizeBefore;
                 if (compressed) {

@@ -37,9 +37,8 @@
 
         <p class="admin-hint" style="margin-bottom:0.75rem">
             Загрузка фото и видео с телефона (можно пачкой). Кадрирование — по желанию, «Пропустить» быстро пропускает шаг.
-            Фото тяжелее <strong>~3 МБ</strong> при сохранении в медиатеку сжимаются примерно до этого размера
-            (оригинал в контейнере не растёт безразмерно). Дата съёмки — из EXIF. Водяной знак при выгрузке в
-            медиатеку не ставится — он добавляется при прикреплении к лоту.
+            Фото тяжелее настроенного лимита сжимаются в медиатеку (quality-лестница, без агрессивного downscale).
+            Дата съёмки — из EXIF. Watermark ставится при прикреплении к лоту, не при выгрузке.
         </p>
 
         <label class="upload-picker" id="media-upload-picker">
@@ -47,6 +46,39 @@
             <input type="file" name="files" id="media-files" accept="image/*,video/*" multiple>
         </label>
         <div class="admin-meta" id="media-upload-status" style="margin-top:0.75rem" hidden></div>
+
+        <details class="media-compress" style="margin-top:1rem">
+            <summary class="admin-hint" style="cursor:pointer">
+                Сжатие больших фото в медиатеке (сейчас: до ${view.compressMaxMb()} МБ,
+                quality ≥ ${view.compressMinQuality()}, сторона ≤ ${view.compressMaxEdge()}px)
+            </summary>
+            <form method="post" action="/admin/media/compress-settings" class="admin-form" style="margin-top:0.75rem">
+                <input type="hidden" name="back" value="/admin/media?${view.backQuery()}">
+                <div class="admin-form__row admin-form__row--fields">
+                    <label class="admin-field">
+                        Макс. размер, МБ
+                        <input type="number" name="media_compress_max_mb" min="1" max="20" step="1"
+                               value="${view.compressMaxMb()}">
+                        <span class="admin-hint">Файлы тяжелее этого значения пережимаются при загрузке в медиатеку.</span>
+                    </label>
+                    <label class="admin-field">
+                        Мин. quality JPEG
+                        <input type="number" name="media_compress_min_quality" min="40" max="95" step="1"
+                               value="${view.compressMinQuality()}">
+                        <span class="admin-hint">Выше = меньше «лесенки» на градиентах, файл тяжелее.</span>
+                    </label>
+                    <label class="admin-field">
+                        Макс. сторона, px
+                        <input type="number" name="media_compress_max_edge" min="800" max="8000" step="100"
+                               value="${view.compressMaxEdge()}">
+                        <span class="admin-hint">Применяется, только если quality alone не влезает в лимит.</span>
+                    </label>
+                </div>
+                <div class="admin-form__actions">
+                    <button type="submit" class="btn btn--fill">Сохранить настройки сжатия</button>
+                </div>
+            </form>
+        </details>
 
         <form class="admin-search" method="get" action="/admin/media" style="margin-top:1.25rem">
             <input type="hidden" name="lotId" value="${view.lotId() != null ? String.valueOf(view.lotId()) : ""}">

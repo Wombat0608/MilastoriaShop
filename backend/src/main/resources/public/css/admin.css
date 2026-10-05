@@ -1452,6 +1452,10 @@ form.is-submitting .btn--fill {
   box-shadow: 0 2px 8px rgba(24, 18, 12, 0.06);
 }
 
+.media-bulk-bar[hidden] {
+  display: none !important;
+}
+
 .media-bulk-bar__info {
   display: flex;
   flex-wrap: wrap;

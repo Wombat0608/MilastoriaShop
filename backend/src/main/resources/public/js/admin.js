@@ -1,19 +1,26 @@
 /* Админка: подтверждения форм, slug, global loading-modal + anti-double submit.
-   Кроп загрузки фото — admin-upload.js; fetch-загрузки — admin-media-upload.js. */
+   ВАЖНО: показываем вертушку только если submit НЕ отменили другие обработчики
+   (e.defaultPrevented) — иначе модалка «залипает» и блокирует всю админку. */
 
 (function () {
-  var loading = window.AdminLoading;
+  function loadingApi() {
+    return window.AdminLoading;
+  }
 
   function isLoading() {
-    return !!(loading && loading.isLoading && loading.isLoading());
+    var api = loadingApi();
+    return !!(api && api.isLoading && api.isLoading());
   }
 
   function showLoading(message) {
-    if (loading && loading.show) loading.show(message || "Сохраняю…");
+    var api = loadingApi();
+    if (api && api.show) return api.show(message || "Сохраняю…");
+    return null;
   }
 
   function hideLoading() {
-    if (loading && loading.hideAll) loading.hideAll();
+    var api = loadingApi();
+    if (api && api.hideAll) api.hideAll();
   }
 
   function isNavigationalForm(form) {
@@ -34,19 +41,31 @@
     return "Сохраняю…";
   }
 
+  function unlockForm(form) {
+    if (!form) return;
+    form.dataset.submitting = "0";
+    form.classList.remove("is-submitting");
+  }
+
   // ——— confirm + loading на обычных формах ———
   document.querySelectorAll("form").forEach(function (form) {
     form.addEventListener("submit", function (e) {
+      // Другие обработчики уже отменили submit (нет лота, нет файлов и т.п.)
+      if (e.defaultPrevented) {
+        unlockForm(form);
+        return;
+      }
+
       if (form.dataset.confirm) {
         if (!window.confirm(form.dataset.confirm)) {
           e.preventDefault();
+          unlockForm(form);
           return;
         }
       }
 
       if (isNavigationalForm(form)) return;
 
-      // повторный клик / второй submit — блокируем
       if (form.dataset.submitting === "1" || isLoading()) {
         e.preventDefault();
         return;
@@ -54,22 +73,22 @@
 
       form.dataset.submitting = "1";
       form.classList.add("is-submitting");
-      showLoading(defaultMessage(form));
-
-      // если браузер не ушёл (ошибка сети/валидация) — снимаем блок
-      window.setTimeout(function () {
-        // submit обычно ведёт к unload; если страница осталась — форма может
-        // быть не заблокирована вечно. Снимаем флаг через 30с (защита от вечного lock).
-      }, 30000);
+      var token = showLoading(defaultMessage(form));
+      // если submit отменят «после» (редко) — снимаем на следующем кадре
+      setTimeout(function () {
+        if (e.defaultPrevented) {
+          unlockForm(form);
+          var api = loadingApi();
+          if (api && api.hide && token) api.hide(token);
+        }
+      }, 0);
     });
   });
 
-  // сброс флага после возврата (bfcache / рестор)
   window.addEventListener("pageshow", function (e) {
     if (e && e.persisted) {
       document.querySelectorAll("form.is-submitting").forEach(function (form) {
-        form.dataset.submitting = "0";
-        form.classList.remove("is-submitting");
+        unlockForm(form);
       });
       hideLoading();
     }
@@ -121,7 +140,6 @@
     }
   }
 
-  // экспорт для page scripts
   window.AdminFormBusy = {
     showLoading: showLoading,
     hideLoading: hideLoading,

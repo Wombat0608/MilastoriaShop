@@ -102,7 +102,7 @@
                         </button>
                     </form>
                 @else
-                    <form method="get" action="/admin/media/lots" id="media-batch-form">
+                    <form method="get" action="/admin/media/lots" id="media-batch-form" data-no-loading>
                         <input type="hidden" name="mediaIds" id="media-batch-ids" value="">
                         <button type="submit" class="btn btn--fill" id="media-batch-submit">
                             Прикрепить выбранные к лоту…

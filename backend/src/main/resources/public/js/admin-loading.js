@@ -1,17 +1,20 @@
 /* Глобальный loading-modal для админки: «вертушка» на загрузках и submit форм.
-   window.AdminLoading.show(message) / update(message) / hide()
-   window.AdminLoading.post(url, options, message) — fetch + spinner + anti-double. */
+   window.AdminLoading.show(message) → token
+   window.AdminLoading.update(message)
+   window.AdminLoading.hide(token) / hideAll()
+   Страховка: авто-hide через 90с, чтобы страница не «залипла». */
 
 (function () {
   if (window.AdminLoading) return;
 
-  var KEY = "admin-loading-busy";
   var overlay = null;
   var box = null;
   var textEl = null;
-  var spinnerEl = null;
   var depth = 0;
-  var busyToken = null;
+  var tokenSeq = 0;
+  var activeTokens = {};
+  var safetyTimer = null;
+  var SAFETY_MS = 90000;
 
   function ensureDom() {
     if (overlay) return;
@@ -26,7 +29,7 @@
     box = document.createElement("div");
     box.className = "admin-loading__box";
 
-    spinnerEl = document.createElement("div");
+    var spinnerEl = document.createElement("div");
     spinnerEl.className = "admin-loading__spinner";
     spinnerEl.setAttribute("aria-hidden", "true");
 
@@ -38,55 +41,79 @@
     box.appendChild(textEl);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
+  }
 
-    overlay.addEventListener("click", function (e) {
-      // не даём «прокликать» мимо — модалка блокирует фон
-      e.preventDefault();
-    });
+  function clearSafety() {
+    if (safetyTimer) {
+      clearTimeout(safetyTimer);
+      safetyTimer = null;
+    }
+  }
+
+  function armSafety() {
+    clearSafety();
+    safetyTimer = setTimeout(function () {
+      // если «вертушка» забыли снять — снимаем сами
+      hideAll();
+    }, SAFETY_MS);
   }
 
   function show(message) {
     ensureDom();
+    tokenSeq += 1;
+    var token = "al-" + tokenSeq;
+    activeTokens[token] = true;
     depth += 1;
     overlay.hidden = false;
     document.documentElement.classList.add("is-admin-loading");
     document.body.classList.add("is-admin-loading");
-    if (message) {
+    if (message && textEl) {
       textEl.textContent = message;
     }
-    return busyToken = Symbol("admin-loading");
+    armSafety();
+    return token;
   }
 
   function update(message) {
     ensureDom();
-    if (message) textEl.textContent = message;
+    if (message && textEl) textEl.textContent = message;
   }
 
   function hide(token) {
     if (!overlay) return;
-    if (token && busyToken !== token) return;
-    depth = Math.max(0, depth - 1);
-    if (depth > 0) return;
-    overlay.hidden = true;
-    document.documentElement.classList.remove("is-admin-loading");
-    document.body.classList.remove("is-admin-loading");
-    busyToken = null;
+    if (token && activeTokens[token]) {
+      delete activeTokens[token];
+      depth = Math.max(0, depth - 1);
+    } else if (token && !activeTokens[token]) {
+      return;
+    } else {
+      depth = Math.max(0, depth - 1);
+    }
+    if (depth > 0 && Object.keys(activeTokens).length > 0) return;
+    // если токенов не осталось — прячем
+    if (Object.keys(activeTokens).length === 0) {
+      depth = 0;
+      overlay.hidden = true;
+      document.documentElement.classList.remove("is-admin-loading");
+      document.body.classList.remove("is-admin-loading");
+      clearSafety();
+    }
   }
 
   function hideAll() {
+    activeTokens = {};
     depth = 0;
+    clearSafety();
     if (!overlay) return;
     overlay.hidden = true;
     document.documentElement.classList.remove("is-admin-loading");
     document.body.classList.remove("is-admin-loading");
-    busyToken = null;
   }
 
   function isLoading() {
-    return depth > 0;
+    return depth > 0 && overlay && !overlay.hidden;
   }
 
-  /** POST/fetch с вертушкой. options — как у fetch. */
   function post(url, options, message) {
     var token = show(message || "Отправляю…");
     var opts = options || {};
@@ -127,16 +154,17 @@
     isLoading: isLoading,
     post: post,
     get: get,
-    KEY: KEY,
   };
 
-  // страховка: если страница уходит (навигация) — вертушка не мешает
   window.addEventListener("pagehide", function () {
     hideAll();
   });
+  window.addEventListener("pageshow", function (e) {
+    if (e && e.persisted) hideAll();
+  });
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible" && !isLoading()) {
-      // no-op
+    if (document.visibilityState === "visible" && isLoading()) {
+      // страница снова видна — сбрасываем только если модалка «голодает»
     }
   });
 })();

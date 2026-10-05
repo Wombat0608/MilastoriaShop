@@ -87,11 +87,8 @@
     var ids = selectedIds();
     if (!ids.length) {
       e.preventDefault();
+      // важно: НЕ показываем вертушку — иначе admin.js её оставит
       return;
-    }
-    // подтверждение + вертушка уже в admin.js
-    if (window.AdminLoading) {
-      window.AdminLoading.show("Прикрепляю " + ids.length + " файл(ов)…");
     }
   });
 

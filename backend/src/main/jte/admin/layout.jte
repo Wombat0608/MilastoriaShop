@@ -39,7 +39,8 @@
         ${content}
     </main>
     <script src="/js/admin-loading.js"></script>
-    <script src="/js/admin.js"></script>
     <script src="/js/admin-dict.js"></script>
+    <!-- admin.js последним: submit-хуки должны видеть preventDefault от page-скриптов -->
+    <script src="/js/admin.js"></script>
 </body>
 </html>

@@ -23,6 +23,7 @@
             </a>
             <nav class="admin-nav" aria-label="Админка">
                 <a href="/admin">Лоты</a>
+                <a href="/admin/media">Медиатека</a>
                 <a href="/admin/categories">Разделы</a>
                 <a href="/admin/watermark">Водяной знак</a>
                 <a href="/admin/contacts">Контакты</a>

@@ -15,6 +15,8 @@ public record WorkView(
         List<String> occasions,
         List<String> fabrics,
         List<String> tags,
-        List<LotCard> related
+        List<LotCard> related,
+        SiteContacts contacts,
+        String baseUrl
 ) {
 }

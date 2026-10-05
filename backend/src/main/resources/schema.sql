@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS categories (
     title       TEXT NOT NULL,
     cover_image TEXT,
     seo_text    TEXT,
+    -- короткий зазывной под заголовком на плитке направления
+    lead        TEXT,
     created_at  TEXT,
     sort        INTEGER NOT NULL DEFAULT 0
 );
@@ -138,3 +140,33 @@ CREATE INDEX IF NOT EXISTS idx_analytics_visits_created ON analytics_visits(crea
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_visitor ON analytics_visits(visitor_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_session ON analytics_visits(session_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_visits_path ON analytics_visits(path);
+
+-- Медиатека админки: исходники фото/видео с телефона до прикрепления к лоту.
+-- kind: 'image' | 'video'.
+-- exif_datetime — дата съёмки из EXIF (или fallback из имени файла/mtime).
+-- Именно по ней по умолчанию сортируется список, null — fallback на uploaded_at.
+-- exif_search — денормализованный lower-case blob для LIKE-поиска по EXIF/имени.
+CREATE TABLE IF NOT EXISTS media_files (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind           TEXT NOT NULL,
+    original_name  TEXT NOT NULL,
+    path           TEXT NOT NULL,
+    thumb_path     TEXT,
+    width          INTEGER,
+    height         INTEGER,
+    uploaded_at    TEXT NOT NULL,
+    exif_datetime  TEXT,
+    exif_make      TEXT,
+    exif_model     TEXT,
+    exif_orientation INTEGER,
+    exif_json      TEXT,
+    exif_search    TEXT,
+    crop_x         INTEGER,
+    crop_y         INTEGER,
+    crop_w         INTEGER,
+    crop_h         INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_media_files_exif_dt ON media_files(exif_datetime);
+CREATE INDEX IF NOT EXISTS idx_media_files_uploaded ON media_files(uploaded_at);
+CREATE INDEX IF NOT EXISTS idx_media_files_kind ON media_files(kind);

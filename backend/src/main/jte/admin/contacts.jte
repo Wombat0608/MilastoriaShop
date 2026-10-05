@@ -50,7 +50,7 @@
                     <label class="admin-field">
                         Почта
                         <input type="text" name="contacts_email" value="${view.email()}"
-                               placeholder="shop@milastoria.ru">
+                               placeholder="shop@milastoria.com">
                     </label>
                 </div>
                 <label>

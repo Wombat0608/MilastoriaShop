@@ -255,9 +255,27 @@ p {
   transition: border-color 0.25s var(--ease), color 0.25s var(--ease);
 }
 
+/* Фирменная стрелка (assets/arrow.svg) вместо «→»; цвет = currentColor текста */
+.link::after {
+  content: "";
+  display: inline-block;
+  width: 1.55em;
+  height: 0.52em;
+  margin-left: 0.42em;
+  vertical-align: 0.02em;
+  background: currentColor;
+  -webkit-mask: url(/assets/arrow.svg) left center / contain no-repeat;
+  mask: url(/assets/arrow.svg) left center / contain no-repeat;
+  transition: transform 0.25s var(--ease);
+}
+
 .link:hover {
   border-color: var(--gold);
   color: var(--gold);
+}
+
+.link:hover::after {
+  transform: translateX(0.22rem);
 }
 
 /* ——— Prototype ribbon ——— */
@@ -554,14 +572,50 @@ p {
   text-transform: uppercase;
 }
 
-/* ——— Category bento ——— */
+/* Шаги заказа: заголовки цветом сердечек (gold), без номеров;
+   слева от заголовка при hover — фирменная стрелка */
+.manifesto__facts--order strong {
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: start;
+}
+
+.manifesto__facts--order strong::before {
+  content: "";
+  /* тот же размер, что у .link::after */
+  width: 1.55em;
+  height: 0.52em;
+  flex: 0 0 auto;
+  margin-top: 0.06em;
+  background: currentColor;
+  -webkit-mask: url(/assets/arrow.svg) left center / contain no-repeat;
+  mask: url(/assets/arrow.svg) left center / contain no-repeat;
+  opacity: 0;
+  transform: translateX(-0.4rem);
+  transition: opacity 0.28s var(--ease), transform 0.28s var(--ease);
+}
+
+.manifesto__facts--order div:hover strong::before,
+.manifesto__facts--order strong:hover::before,
+.manifesto__facts--order div:focus-within strong::before {
+  opacity: 1;
+  transform: none;
+}
+
+/* ——— Category bento ———
+   Укрупнённые плитки: направление — главный выбор на главной.
+   4: 1 большая + 3 справа.
+   5: 1 большая слева + 2×2 справа.
+   6+: ровная сетка 3×N. */
 
 .cat-bento {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
-  grid-template-rows: repeat(3, minmax(180px, 1fr));
-  gap: 0.9rem;
-  min-height: 620px;
+  grid-template-rows: repeat(3, minmax(220px, 1fr));
+  gap: 1rem;
+  min-height: 780px;
 }
 
 .cat-tile {
@@ -581,6 +635,46 @@ p {
 .cat-tile:nth-child(3) { grid-column: 2; grid-row: 2; }
 .cat-tile:nth-child(4) { grid-column: 2; grid-row: 3; }
 
+/* 5 направлений */
+.cat-bento:has(.cat-tile:nth-child(5)) {
+  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-rows: repeat(2, minmax(240px, 1fr));
+  min-height: 640px;
+}
+
+.cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+.cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+.cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(3) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(5) {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+/* 6+ направлений */
+.cat-bento:has(.cat-tile:nth-child(6)) {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, minmax(220px, 1fr));
+  min-height: 560px;
+}
+
+.cat-bento:has(.cat-tile:nth-child(6)) .cat-tile:nth-child(n) {
+  grid-column: auto;
+  grid-row: auto;
+}
+
 .cat-tile img {
   width: 100%;
   height: 100%;
@@ -598,19 +692,19 @@ p {
 .cat-tile__shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(24,18,12,0) 45%, rgba(20,15,10,0.68) 100%);
+  background: linear-gradient(180deg, rgba(24,18,12,0) 40%, rgba(20,15,10,0.72) 100%);
 }
 
 .cat-tile__label {
   position: absolute;
-  left: 1.4rem;
-  right: 1.4rem;
-  bottom: 1.3rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  bottom: 1.4rem;
   z-index: 1;
 }
 
 .cat-tile__label span {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   opacity: 0.85;
@@ -618,13 +712,33 @@ p {
 }
 
 .cat-tile__label h3 {
-  margin: 0.2rem 0 0;
-  font-size: clamp(1.15rem, 1.8vw, 1.65rem);
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.25rem, 2vw, 1.85rem);
   font-weight: 400;
 }
 
+.cat-tile__lead {
+  margin: 0.45rem 0 0;
+  font-size: clamp(0.85rem, 1.1vw, 0.98rem);
+  line-height: 1.4;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 28em;
+}
+
 .cat-tile:nth-child(1) .cat-tile__label h3 {
-  font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+  font-size: clamp(1.75rem, 3vw, 2.6rem);
+}
+
+.cat-tile:nth-child(1) .cat-tile__lead {
+  font-size: clamp(0.95rem, 1.25vw, 1.1rem);
+  max-width: 22em;
+}
+
+/* В раскладке 5 плашек «герой» уже не на всю высоту 3 рядов — чуть меньше H3 */
+.cat-bento:has(.cat-tile:nth-child(5)):not(:has(.cat-tile:nth-child(6)))
+  .cat-tile:nth-child(1) .cat-tile__label h3 {
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
 }
 
 /* ——— Lot grid (gallery / featured) ———
@@ -1449,9 +1563,22 @@ p {
 
   .work-aside { position: static; }
 
-  .cat-bento {
+  .cat-bento,
+  .cat-bento:has(.cat-tile:nth-child(5)),
+  .cat-bento:has(.cat-tile:nth-child(6)) {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(3, 200px);
+    grid-template-rows: repeat(3, 240px);
+    min-height: 0;
+  }
+  .cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(n),
+  .cat-bento:has(.cat-tile:nth-child(6)) .cat-tile:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(1),
+  .cat-bento:has(.cat-tile:nth-child(6)) .cat-tile:nth-child(1) {
+    grid-column: 1 / -1;
+    min-height: 280px;
   }
 
   .lot-masonry { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1470,16 +1597,27 @@ p {
   .hero__content { padding: 3rem 0 3.25rem; }
   .section { padding: 4rem 0; }
 
-  .cat-bento {
+  .cat-bento,
+  .cat-bento:has(.cat-tile:nth-child(5)),
+  .cat-bento:has(.cat-tile:nth-child(6)) {
     grid-template-columns: 1fr;
     grid-template-rows: none;
     min-height: 0;
   }
-  .cat-tile { height: 260px; }
-  .cat-tile:nth-child(1) { grid-column: 1; grid-row: auto; height: 340px; }
-  .cat-tile:nth-child(2),
-  .cat-tile:nth-child(3),
-  .cat-tile:nth-child(4) { grid-column: 1; grid-row: auto; }
+  .cat-tile { height: 300px; }
+  .cat-tile:nth-child(1),
+  .cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(1),
+  .cat-bento:has(.cat-tile:nth-child(6)) .cat-tile:nth-child(1) {
+    grid-column: 1;
+    grid-row: auto;
+    height: 400px;
+  }
+  .cat-tile:nth-child(n + 2),
+  .cat-bento:has(.cat-tile:nth-child(5)) .cat-tile:nth-child(n + 2),
+  .cat-bento:has(.cat-tile:nth-child(6)) .cat-tile:nth-child(n + 2) {
+    grid-column: 1;
+    grid-row: auto;
+  }
 
   .lot-masonry { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 0.85rem; }
   .lot-card { margin-bottom: 0; }

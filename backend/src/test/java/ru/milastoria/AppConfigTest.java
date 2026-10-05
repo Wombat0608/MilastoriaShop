@@ -31,8 +31,8 @@ class AppConfigTest {
     void unquotesValues() {
         Map<String, String> m = AppConfig.parseYaml("""
                 site:
-                  base_url: "https://milastoria.ru"
+                  base_url: "https://milastoria.com"
                 """);
-        assertEquals("https://milastoria.ru", m.get("site.base_url"));
+        assertEquals("https://milastoria.com", m.get("site.base_url"));
     }
 }

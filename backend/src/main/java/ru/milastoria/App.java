@@ -21,11 +21,13 @@ import ru.milastoria.mapper.AnalyticsMapper;
 import ru.milastoria.mapper.CategoryMapper;
 import ru.milastoria.mapper.DictMapper;
 import ru.milastoria.mapper.LotMapper;
+import ru.milastoria.mapper.MediaMapper;
 import ru.milastoria.mapper.SettingsMapper;
 import ru.milastoria.mapper.SloganMapper;
 import ru.milastoria.search.LotSearchIndex;
 import ru.milastoria.web.AdminController;
 import ru.milastoria.web.Auth;
+import ru.milastoria.web.MediaAdminController;
 import ru.milastoria.web.SiteController;
 import ru.milastoria.web.SitemapController;
 
@@ -92,10 +94,9 @@ public class App {
         }
 
         TemplateEngine templateEngine = TemplateEngine.createPrecompiled(ContentType.Html);
-        SiteController site = new SiteController(sqlSessionFactory, templateEngine);
-        SitemapController sitemap = new SitemapController(
-                sqlSessionFactory,
-                cfg.get("site.base_url", "SITE_BASE_URL", "https://milastoria.ru"));
+        String baseUrl = cfg.get("site.base_url", "SITE_BASE_URL", "https://milastoria.com");
+        SiteController site = new SiteController(sqlSessionFactory, templateEngine, baseUrl);
+        SitemapController sitemap = new SitemapController(sqlSessionFactory, baseUrl);
 
         Path dataDir = Path.of(dbPath).toAbsolutePath().normalize().getParent();
         Path watermark = ImageProcessor.extractBundledWatermark(dataDir.resolve("branding"));
@@ -110,6 +111,10 @@ public class App {
                 sqlSessionFactory, templateEngine, imageProcessor, auth,
                 contentDirPath.toAbsolutePath().normalize(),
                 contentDirPath.toAbsolutePath().normalize().resolve("originals")
+        );
+        MediaAdminController mediaAdmin = new MediaAdminController(
+                sqlSessionFactory, templateEngine, imageProcessor,
+                contentDirPath.toAbsolutePath().normalize()
         );
 
         Javalin app = Javalin.create(config -> {
@@ -130,6 +135,12 @@ public class App {
         app.get("/", site::home);
         app.get("/gallery", site::gallery);
         app.get("/work/{slug}", site::work);
+        // Старые URL прежнего сайта — permanent redirect (иначе Google держит 404)
+        app.get("/catalog", ctx -> ctx.redirect("/gallery", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
+        app.get("/catalog/", ctx -> ctx.redirect("/gallery", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
+        app.get("/profile", ctx -> ctx.redirect("/#about", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
+        app.get("/about", ctx -> ctx.redirect("/#about", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
+        app.get("/contacts", ctx -> ctx.redirect("/#contacts", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
         // robots.txt — статика из classpath (public/robots.txt)
         app.get("/sitemap.xml", sitemap::sitemap);
 
@@ -168,6 +179,11 @@ public class App {
         app.post("/admin/categories/{id}", admin::updateCategory);
 
         app.get("/admin/lots/{id}/photos", admin::photosPage);
+        app.get("/admin/media", mediaAdmin::listPage);
+        app.post("/admin/media/upload", mediaAdmin::upload);
+        app.post("/admin/media/{id}/delete", mediaAdmin::delete);
+        app.get("/admin/media/{id}/attach", mediaAdmin::attachForm);
+        app.post("/admin/media/{id}/attach", mediaAdmin::attachSubmit);
         app.get("/admin/watermark", admin::watermarkPage);
         app.post("/admin/watermark", admin::saveWatermarkSettings);
         app.get("/admin/contacts", admin::contactsPage);
@@ -242,6 +258,7 @@ public class App {
             addColumnIfMissing(conn, "lots", "created_at", "TEXT");
             addColumnIfMissing(conn, "categories", "created_at", "TEXT");
             addColumnIfMissing(conn, "categories", "sort", "INTEGER DEFAULT 0");
+            addColumnIfMissing(conn, "categories", "lead", "TEXT");
             addColumnIfMissing(conn, "lot_images", "wm_x", "REAL");
             addColumnIfMissing(conn, "lot_images", "wm_y", "REAL");
             addColumnIfMissing(conn, "lot_images", "wm_width", "REAL");
@@ -329,6 +346,7 @@ public class App {
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CategoryMapper.class);
         configuration.addMapper(LotMapper.class);
+        configuration.addMapper(MediaMapper.class);
         configuration.addMapper(DictMapper.class);
         configuration.addMapper(SettingsMapper.class);
         configuration.addMapper(SloganMapper.class);

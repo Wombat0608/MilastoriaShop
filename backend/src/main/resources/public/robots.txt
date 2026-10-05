@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/
 
-Sitemap: /sitemap.xml
+Sitemap: https://milastoria.com/sitemap.xml

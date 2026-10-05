@@ -66,6 +66,15 @@
         LIMIT #{limit}
     </select>
 
+    <!-- Избранное только внутри выбранного раздела галереи -->
+    <select id="findFeaturedByCategory" resultType="ru.milastoria.domain.Lot">
+        SELECT <include refid="cols"/>
+        FROM lots
+        WHERE status = 'published' AND featured = 1 AND category_id = #{categoryId}
+        ORDER BY sort
+        LIMIT #{limit}
+    </select>
+
     <select id="findBySlug" resultType="ru.milastoria.domain.Lot">
         SELECT <include refid="colsFull"/>
         FROM lots
@@ -105,11 +114,30 @@
         ORDER BY l.sort
     </select>
 
+    <!--
+      Похожие работы: та же категория, публичные, не текущий лот.
+      Сначала — по совпадению поводов/тегов (dict_values kind=occasion|tag),
+      затем по sort, затем id (стабильно при равном score).
+      excludeId = id текущего лота (он же источник «эталонных» dict-значений).
+    -->
     <select id="findRelated" resultType="ru.milastoria.domain.Lot">
         SELECT <include refid="cols"/>
-        FROM lots
-        WHERE status = 'published' AND category_id = #{categoryId} AND id != #{excludeId}
-        ORDER BY sort
+        FROM lots l
+        WHERE l.status = 'published'
+          AND l.category_id = #{categoryId}
+          AND l.id != #{excludeId}
+        ORDER BY (
+            SELECT COUNT(DISTINCT d.id)
+            FROM lot_dict ld
+            JOIN dict_values d ON d.id = ld.dict_id
+            JOIN lot_dict ld_cur
+                 ON ld_cur.dict_id = d.id
+                AND ld_cur.lot_id = #{excludeId}
+            WHERE ld.lot_id = l.id
+              AND d.kind IN ('occasion', 'tag')
+        ) DESC,
+        l.sort ASC,
+        l.id ASC
         LIMIT #{limit}
     </select>
 
@@ -186,6 +214,15 @@
         FROM lot_videos
         WHERE lot_id = #{lotId}
     </select>
+
+    <insert id="insertVideo" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.LotVideo">
+        INSERT INTO lot_videos (lot_id, path, poster_path, caption)
+        VALUES (#{lotId}, #{path}, #{posterPath}, #{caption})
+    </insert>
+
+    <delete id="deleteVideoById">
+        DELETE FROM lot_videos WHERE id = #{id}
+    </delete>
 
     <select id="findTagNamesByLotId" resultType="string">
         SELECT t.name

@@ -3,7 +3,7 @@
 <mapper namespace="ru.milastoria.mapper.CategoryMapper">
 
     <sql id="cols">
-        id, slug, title, cover_image, seo_text, created_at, sort
+        id, slug, title, cover_image, seo_text, lead, created_at, sort
     </sql>
 
     <select id="findAll" resultType="ru.milastoria.domain.Category">
@@ -33,8 +33,8 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.Category">
-        INSERT INTO categories (slug, title, cover_image, seo_text, created_at, sort)
-        VALUES (#{slug}, #{title}, #{coverImage}, #{seoText}, #{createdAt}, #{sort})
+        INSERT INTO categories (slug, title, cover_image, seo_text, lead, created_at, sort)
+        VALUES (#{slug}, #{title}, #{coverImage}, #{seoText}, #{lead}, #{createdAt}, #{sort})
     </insert>
 
     <update id="update" parameterType="ru.milastoria.domain.Category">
@@ -42,7 +42,8 @@
             slug = #{slug},
             title = #{title},
             cover_image = #{coverImage},
-            seo_text = #{seoText}
+            seo_text = #{seoText},
+            lead = #{lead}
         WHERE id = #{id}
     </update>
 

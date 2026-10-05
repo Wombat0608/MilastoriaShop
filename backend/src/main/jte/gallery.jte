@@ -6,6 +6,10 @@
     title = view.title() + " — Milastoria",
     description = view.lead(),
     activeNav = "gallery",
+    contacts = view.contacts(),
+    baseUrl = view.baseUrl(),
+    path = view.seoPath(),
+    extraJsonLd = "",
     content = @`
         <div class="wrap">
             <header class="page-hero">
@@ -40,6 +44,29 @@
                 </div>
             </form>
 
+            @if(view.showCategoryHighlights())
+                <div class="section-head" style="margin-top:2.5rem">
+                    <h2>Избранные работы</h2>
+                </div>
+                <div class="lot-masonry" style="margin-bottom:2.5rem">
+                    @for(var card : view.featuredLots())
+                        @template.partials.lotCard(card = card)
+                    @endfor
+                </div>
+
+                @if(!view.videos().isEmpty())
+                    <div class="section-head" style="margin-bottom:0">
+                        <h2>Образы в движении</h2>
+                        <span class="more" style="pointer-events:none; border-color:transparent">Пролистайте вбок →</span>
+                    </div>
+                    <div class="video-strip" style="margin-top:1rem; margin-bottom:2.5rem">
+                        @for(var v : view.videos())
+                            @template.partials.videoCard(v = v)
+                        @endfor
+                    </div>
+                @endif
+            @endif
+
             <div class="lot-masonry" style="margin-bottom: 4rem">
                 @if(view.lots().isEmpty())
                     <div class="empty">Ничего не найдено</div>
@@ -56,27 +83,27 @@
                     <span class="eyebrow">Заказ</span>
                     <h2 style="font-size:1.6rem">Как проходит заказ</h2>
                     <p style="margin-top:1rem; color:var(--ink-soft); max-width:28em">
-                        Платье шьётся на заказ — от первого разговора до готового образа.
-                        Расскажите повод и настроение, подскажем силуэт, ткань и сроки.
+                        Шьём по вашим меркам — <strong>без промежуточных примерок</strong>.
+                        Подбираем ткани и материалы под задачу, силуэт и событие.
                     </p>
                     <a class="btn btn--line" href="/#contacts" style="margin-top:1.5rem">Обсудить заказ</a>
                 </div>
                 <div class="manifesto__facts manifesto__facts--order" style="font-style:normal">
                     <div>
-                        <strong>1. Заявка</strong>
-                        <span>Пишите в WhatsApp или Telegram: дата события, примеры из галереи, пожелания по силуэту и цвету.</span>
+                        <strong>Заявка</strong>
+                        <span>Пишите в WhatsApp или Telegram: дата события, образы из галереи, пожелания по силуэту и цвету.</span>
                     </div>
                     <div>
-                        <strong>2. Эскиз и ткани</strong>
-                        <span>Обсуждаем детали, подбираем ткань и декор, согласовываем стоимость и сроки пошива.</span>
+                        <strong>Мерки и подбор тканей</strong>
+                        <span>Снимаем мерки, подбираем ткань, декор и материалы — находим то, что нужно именно вашему платью.</span>
                     </div>
                     <div>
-                        <strong>3. Замеры и пошив</strong>
-                        <span>Снимаем мерки, шьём платье, при необходимости правим на промежуточных примерках.</span>
+                        <strong>Пошив без примерок</strong>
+                        <span>Платье шьётся по размерам: без промежуточных примерок, с точной посадкой «под вас».</span>
                     </div>
                     <div>
-                        <strong>4. Готовое платье</strong>
-                        <span>Финальная примерка и передача — платье готово к вашему событию.</span>
+                        <strong>Готовое платье</strong>
+                        <span>Финальная передача — образ готов к вашему событию.</span>
                     </div>
                 </div>
             </div>

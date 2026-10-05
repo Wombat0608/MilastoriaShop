@@ -44,6 +44,13 @@
             </label>
 
             <label>
+                Лид (под заголовком на плитке)
+                <textarea name="lead" rows="2"
+                          placeholder="Короткий зазывной, 1–2 строки">${view.category() != null && view.category().getLead() != null ? view.category().getLead() : ""}</textarea>
+                <span class="admin-hint">Показывается на направлении на главной под названием. SEO-текст — отдельно, для страницы раздела.</span>
+            </label>
+
+            <label>
                 SEO-текст
                 <textarea name="seo_text" rows="3">${view.category() != null && view.category().getSeoText() != null ? view.category().getSeoText() : ""}</textarea>
             </label>

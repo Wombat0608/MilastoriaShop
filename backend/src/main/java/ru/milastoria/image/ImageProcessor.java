@@ -29,6 +29,8 @@ public class ImageProcessor {
 
     public static final Variant FULL = new Variant("full", 1800, 84, 340, 28);
     public static final Variant THUMB = new Variant("thumb", 900, 82, 170, 14);
+    /** Превью в медиатеке: маленькое, без watermark. */
+    public static final Variant MEDIA_THUMB = new Variant("media_thumb", 480, 82, 0, 0);
 
     private final String convertBinary;
     private final Path watermarkFile;

@@ -24,6 +24,10 @@ public interface LotMapper {
 
     List<Lot> findFeatured(@Param("limit") int limit);
 
+    /** Избранное только внутри одной категории (галерея с выбранным разделом). */
+    List<Lot> findFeaturedByCategory(@Param("categoryId") long categoryId,
+                                     @Param("limit") int limit);
+
     Lot findBySlug(@Param("slug") String slug);
 
     Lot findById(@Param("id") long id);
@@ -33,6 +37,10 @@ public interface LotMapper {
                              @Param("tag") String tag,
                              @Param("ftsQuery") String ftsQuery);
 
+    /**
+     * Похожие работы: та же категория; score по общим occasion/tag из dict_values,
+     * затем sort, затем id. excludeId — id текущего лота.
+     */
     List<Lot> findRelated(@Param("categoryId") long categoryId,
                            @Param("excludeId") long excludeId,
                            @Param("limit") int limit);
@@ -61,6 +69,10 @@ public interface LotMapper {
     void updateLotSort(@Param("id") long id, @Param("sort") int sort);
 
     List<LotVideo> findVideosByLotId(@Param("lotId") long lotId);
+
+    void insertVideo(LotVideo video);
+
+    void deleteVideoById(@Param("id") long id);
 
     List<String> findTagNamesByLotId(@Param("lotId") long lotId);
 

@@ -19,7 +19,9 @@ storage:
   db_path: /app/data/milastoria.db
 
 site:
-  base_url: https://milastoria.ru
+  base_url: https://milastoria.com
 
 image:
-  convert: convert
+  # Docker (IMv7): magick; локальная машина с IM6: convert
+  # В контейнере ENV CONVERT_BIN=magick имеет приоритет над этим YAML.
+  convert: magick

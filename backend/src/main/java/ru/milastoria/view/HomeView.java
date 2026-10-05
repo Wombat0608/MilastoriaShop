@@ -3,13 +3,12 @@ package ru.milastoria.view;
 import java.util.List;
 
 /**
- * Главная: случайный H1-слоган + hero + «О нас» + «Контакты».
+ * Главная: случайный H1-слоган + hero + направления + «О нас» + «Контакты».
+ * Избранное и видео живут в галерее (только внутри выбранного раздела).
  * slogan/aboutHtml — сырой HTML через {@link RawHtml}.
  * heroImageMobile пустой → браузер берёт heroImage (десктоп).
  */
 public record HomeView(List<CategoryTile> categories,
-                       List<LotCard> featuredLots,
-                       List<VideoTile> videos,
                        String sloganHtml,
                        String heroLead,
                        String heroImage,
@@ -23,7 +22,9 @@ public record HomeView(List<CategoryTile> categories,
                        String contactsPhone,
                        String contactsEmail,
                        String contactsAddress,
-                       List<ContactLine> contactsMessengers) {
+                       List<ContactLine> contactsMessengers,
+                       SiteContacts contacts,
+                       String baseUrl) {
 
     public RawHtml slogan() {
         return RawHtml.of(sloganHtml);

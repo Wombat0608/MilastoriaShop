@@ -344,6 +344,7 @@ public class AdminController {
             slug = Fts.slugify(slug);
         }
         String seoText = nullIfBlank(formParam(ctx, "seo_text"));
+        String lead = nullIfBlank(formParam(ctx, "lead"));
 
         if (title.isBlank()) {
             ctx.redirect("/admin/categories/new?error=" + urlEncode("Название раздела обязательно"));
@@ -364,6 +365,7 @@ public class AdminController {
             category.setTitle(title);
             category.setSlug(slug);
             category.setSeoText(seoText);
+            category.setLead(lead);
             category.setCreatedAt(Instant.now().toString());
             category.setSort(mapper.maxSort() + 1);
             String coverPath = processCategoryCover(ctx, slug);
@@ -383,6 +385,7 @@ public class AdminController {
             slug = Fts.slugify(slug);
         }
         String seoText = nullIfBlank(formParam(ctx, "seo_text"));
+        String lead = nullIfBlank(formParam(ctx, "lead"));
 
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
             CategoryMapper mapper = session.getMapper(CategoryMapper.class);
@@ -408,6 +411,7 @@ public class AdminController {
             category.setTitle(title);
             category.setSlug(slug);
             category.setSeoText(seoText);
+            category.setLead(lead);
             category.setCoverImage(existing.getCoverImage());
             String coverPath = processCategoryCover(ctx, slug);
             if (coverPath != null) {
@@ -800,9 +804,13 @@ public class AdminController {
         if (msg.contains("not appear") || msg.contains("не похож")) {
             return msg;
         }
-        // convert говорит про формат, а не про «битый JPEG» — упрощаем
+        // convert/magick говорит про формат, а не про «битый JPEG» — упрощаем
         if (msg.contains("ImageMagick") && msg.contains("insufficient")) {
             return "файл не распознан как изображение (JPEG/PNG/HEIC) — попробуйте другой снимок";
+        }
+        if (msg.contains("no decode delegate") || msg.contains("no images defined")
+                || msg.contains("no such file") || msg.contains("unable to open image")) {
+            return "сервер не смог обработать это фото — попробуйте JPEG или PNG (не HEIC/WEBP, если конвертация падает)";
         }
         return msg.length() > 300 ? msg.substring(0, 300) + "…" : msg;
     }

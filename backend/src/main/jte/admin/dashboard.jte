@@ -11,6 +11,7 @@
         <div class="section-head admin-head">
             <h1>Лоты</h1>
             <div class="admin-head__actions">
+                <a class="btn btn--line" href="/admin/media">Медиатека</a>
                 <a class="btn btn--line" href="/admin/categories">Разделы</a>
                 <a class="btn btn--fill" href="/admin/lots/new">+ Новый лот</a>
             </div>

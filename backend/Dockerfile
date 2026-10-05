@@ -8,7 +8,19 @@ RUN mvn -B package -DskipTests
 
 # ---- runtime ----
 FROM eclipse-temurin:21-jre-alpine
-RUN apk add --no-cache imagemagick
+# Базовый imagemagick в Alpine без JPEG/HEIC — без subpackages convert
+# не декодирует .jpg/.heic («no decode delegate»).
+# ffmpeg — превью/постеры видео в медиатеке и при attach к лоту.
+RUN apk add --no-cache \
+        imagemagick \
+        imagemagick-jpeg \
+        imagemagick-heic \
+        imagemagick-webp \
+        imagemagick-tiff \
+        libheif-jpeg \
+        ffmpeg
+# IMv7: magick вместо устаревшего convert
+ENV CONVERT_BIN=magick
 WORKDIR /app
 COPY --from=build /app/target/milastoria-app.jar app.jar
 

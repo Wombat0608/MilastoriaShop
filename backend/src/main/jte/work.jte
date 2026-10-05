@@ -8,6 +8,10 @@
     title = (view.lot().getMetaTitle() != null ? view.lot().getMetaTitle() : view.lot().getTitle() + " — Milastoria"),
     description = (view.lot().getMetaDescription() != null ? view.lot().getMetaDescription() : view.lot().getAnnotation()),
     activeNav = "gallery",
+    contacts = view.contacts(),
+    baseUrl = view.baseUrl(),
+    path = "/work/" + view.lot().getSlug(),
+    extraJsonLd = ru.milastoria.view.SiteSeo.breadcrumbJson(view.contacts(), view.baseUrl(), view.categoryTitle(), view.categorySlug(), view.lot().getTitle(), view.lot().getSlug()),
     content = @`
         <div class="wrap" style="padding-top: 2.5rem;">
             <nav class="breadcrumb" aria-label="Навигация">

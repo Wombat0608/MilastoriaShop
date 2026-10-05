@@ -40,6 +40,11 @@
                         </a>
                         <div class="admin-lot-row__body grow">
                             <a class="admin-lot-row__title" href="/admin/categories/${cat.getId()}/edit">${cat.getTitle()}</a>
+                            @if(cat.getLead() != null && !cat.getLead().isBlank())
+                                <div class="admin-lot-row__meta" style="margin-top:0.2rem">
+                                    <span style="color:var(--ink-soft); font-size:0.85rem">${cat.getLead()}</span>
+                                </div>
+                            @endif
                             <div class="admin-lot-row__meta">
                                 <code class="admin-lot-row__slug">${cat.getSlug()}</code>
                                 <span class="admin-lot-row__id">#${cat.getId()}</span>

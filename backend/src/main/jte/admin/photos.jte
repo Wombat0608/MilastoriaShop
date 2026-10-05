@@ -16,6 +16,7 @@
         <div class="section-head admin-head">
             <h1>${view.lot().getTitle()}</h1>
             <div class="admin-head__actions">
+                <a class="btn btn--line" href="/admin/media?lotId=${view.lot().getId()}">Из медиатеки</a>
                 <a class="btn btn--line" href="/admin/lots/${view.lot().getId()}/edit">Вернуться к лоту</a>
                 <a class="btn btn--line" href="/work/${view.lot().getSlug()}" target="_blank" rel="noopener">Сайт</a>
             </div>

@@ -21,9 +21,12 @@ import ru.milastoria.view.ContactLine;
 import ru.milastoria.view.GalleryView;
 import ru.milastoria.view.HomeView;
 import ru.milastoria.view.LotCard;
+import ru.milastoria.view.SiteContacts;
 import ru.milastoria.view.VideoTile;
 import ru.milastoria.view.WorkView;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -41,8 +44,11 @@ public class SiteController {
     private static final String DEFAULT_ABOUT_TITLE = "Меньше витрины, больше характера";
     private static final String DEFAULT_ABOUT_HTML =
             "<p>Мы шьём нарядные детские и взрослые платья с 2016 года. "
-                    + "Крупные кадры, короткие аннотации, видео там, где платье раскрывается "
-                    + "в движении. Пошив на заказ — от идеи до примерки.</p>";
+                    + "Работаем <strong>по меркам — без промежуточных примерок</strong>: "
+                    + "опыт и точный расчёт позволяют снять мерки, подобрать ткань и материалы "
+                    + "и сшить платье, которое садится с первого раза.</p>"
+                    + "<p>Подбор тканей, декора и фурнитуры — часть заказа: находим то, "
+                    + "что нужно именно вашему событию, силуэту и настроению.</p>";
     private static final String DEFAULT_GALLERY_TITLE = "Галерея работ";
     private static final String DEFAULT_GALLERY_LEAD =
             "Коллекция нарядных детских, женских платьев, Family Look и работ клиентов. "
@@ -52,22 +58,24 @@ public class SiteController {
             "Напишите в WhatsApp, Telegram или позвоните — расскажем о сроках, "
                     + "посадке и вариантах комплекта.";
     private static final String DEFAULT_CONTACTS_PHONE = "+7 (926) 429-64-58";
-    private static final String DEFAULT_CONTACTS_EMAIL = "shop@milastoria.ru";
+    private static final String DEFAULT_CONTACTS_EMAIL = "shop@milastoria.com";
     private static final String DEFAULT_CONTACTS_ADDRESS = "Московская область, город Кубинка";
     private static final String DEFAULT_CONTACTS_MESSENGERS =
             "WhatsApp|https://wa.me/79264296458\nTelegram|https://t.me/Milastoria";
     private static final String DEFAULT_CONTACTS_IMAGE = "/content/img/client-01.jpg";
     private static final String DEFAULT_HERO_LEAD =
-            "Нарядные платья ручной работы для детей и взрослых: галерея работ, Family Look, "
-                    + "съёмки клиентов. Пошив на заказ — от идеи до примерки.";
+            "Нарядные платья ручной работы для детей и взрослых. Шьём по меркам — "
+                    + "без промежуточных примерок; подбираем ткани и материалы под ваш образ.";
     private static final String DEFAULT_HERO_IMAGE = "/content/img/hero.jpg";
 
     private final SqlSessionFactory sqlSessionFactory;
     private final TemplateEngine templateEngine;
+    private final String baseUrl;
 
-    public SiteController(SqlSessionFactory sqlSessionFactory, TemplateEngine templateEngine) {
+    public SiteController(SqlSessionFactory sqlSessionFactory, TemplateEngine templateEngine, String baseUrl) {
         this.sqlSessionFactory = sqlSessionFactory;
         this.templateEngine = templateEngine;
+        this.baseUrl = (baseUrl == null || baseUrl.isBlank()) ? "https://milastoria.com" : baseUrl.trim();
     }
 
     public void home(Context ctx) {
@@ -79,22 +87,7 @@ public class SiteController {
 
             List<CategoryTile> categories = categoryMapper.findAll().stream()
                     .map(cat -> new CategoryTile(cat.getSlug(), cat.getTitle(), cat.getCoverImage(),
-                            lotMapper.countPublishedByCategory(cat.getId())))
-                    .toList();
-
-            List<LotCard> featured = lotMapper.findFeatured(9).stream()
-                    .map(lot -> toCard(lotMapper, lot))
-                    .toList();
-
-            List<VideoTile> videos = lotMapper.findFeatured(20).stream()
-                    .flatMap(lot -> lotMapper.findVideosByLotId(lot.getId()).stream()
-                            .map(video -> new VideoTile(
-                                    lot.getTitle(),
-                                    "",
-                                    video.getPosterPath(),
-                                    "/work/" + lot.getSlug() + "#video-" + video.getId(),
-                                    video.getCaption())))
-                    .limit(3)
+                            lotMapper.countPublishedByCategory(cat.getId()), cat.getLead()))
                     .toList();
 
             String randomSlogan = pickRandomSlogan(sloganMapper);
@@ -148,14 +141,16 @@ public class SiteController {
                 contactsMessengersRaw = DEFAULT_CONTACTS_MESSENGERS;
             }
             List<ContactLine> contactsMessengers = ContactLine.parseMessengers(contactsMessengersRaw);
+            SiteContacts siteContacts = SiteContacts.fromSettings(
+                    contactsPhone, contactsEmail, contactsAddress, contactsMessengersRaw);
 
             render(ctx, "home.jte",
-                    new HomeView(categories, featured, videos, slogan,
+                    new HomeView(categories, slogan,
                             heroLead, heroImage, heroImageMobile,
                             aboutTitle, aboutHtml, aboutImage,
                             contactsTitle, contactsLead, contactsImage,
                             contactsPhone, contactsEmail, contactsAddress,
-                            contactsMessengers));
+                            contactsMessengers, siteContacts, baseUrl));
         }
     }
 
@@ -179,6 +174,34 @@ public class SiteController {
                     .map(lot -> toCard(lotMapper, lot))
                     .toList();
 
+            // Избранное + «Образы в движении» — только чистый просмотр раздела
+            List<LotCard> featured = List.of();
+            List<VideoTile> videos = List.of();
+            boolean pureCategory = categorySlug != null && tag == null && ftsQuery == null;
+            if (pureCategory) {
+                Category cat = categoryMapper.findBySlug(categorySlug);
+                if (cat != null) {
+                    // Обычная сетка (не bento): фото лотов 3:4, bento рвал кадры.
+                    // До 5 карточек, порядок случайный при каждом заходе.
+                    List<LotCard> featuredPool = lotMapper.findFeaturedByCategory(cat.getId(), 20).stream()
+                            .map(lot -> toCard(lotMapper, lot))
+                            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+                    Collections.shuffle(featuredPool, RANDOM);
+                    featured = featuredPool.size() > 5 ? List.copyOf(featuredPool.subList(0, 5)) : List.copyOf(featuredPool);
+
+                    videos = lotMapper.findFeaturedByCategory(cat.getId(), 20).stream()
+                            .flatMap(lot -> lotMapper.findVideosByLotId(lot.getId()).stream()
+                                    .map(video -> new VideoTile(
+                                            lot.getTitle(),
+                                            "",
+                                            video.getPosterPath(),
+                                            "/work/" + lot.getSlug() + "#video-" + video.getId(),
+                                            video.getCaption())))
+                            .limit(3)
+                            .toList();
+                }
+            }
+
             String title;
             String lead;
             if (tag != null) {
@@ -187,14 +210,20 @@ public class SiteController {
             } else if (categorySlug != null) {
                 Category cat = categoryMapper.findBySlug(categorySlug);
                 title = cat != null ? cat.getTitle() : "Галерея";
-                lead = cat != null ? cat.getSeoText() : "";
+                // Лид раздела короче SEO-текста — на странице раздела сначала он
+                lead = cat != null && cat.getLead() != null && !cat.getLead().isBlank()
+                        ? cat.getLead()
+                        : (cat != null ? cat.getSeoText() : "");
             } else {
                 SettingsMapper settings = session.getMapper(SettingsMapper.class);
                 title = nvlSettings(settings.get("gallery_title"), DEFAULT_GALLERY_TITLE);
                 lead = nvlSettings(settings.get("gallery_description"), DEFAULT_GALLERY_LEAD);
             }
 
-            render(ctx, "gallery.jte", new GalleryView(title, lead, options, tag, query, lots));
+            SiteContacts siteContacts = loadSiteContacts(session);
+
+            render(ctx, "gallery.jte",
+                    new GalleryView(title, lead, options, tag, query, lots, featured, videos, siteContacts, baseUrl));
         }
     }
 
@@ -229,11 +258,23 @@ public class SiteController {
                     dictMapper.findNamesByLot(lot.getId(), "occasion"),
                     dictMapper.findNamesByLot(lot.getId(), "fabric"),
                     dictMapper.findNamesByLot(lot.getId(), "tag"),
-                    related
+                    related,
+                    loadSiteContacts(session),
+                    baseUrl
             );
 
             render(ctx, "work.jte", view);
         }
+    }
+
+    /** Контакты из settings contacts_* для шапки/подвала (все публичные страницы). */
+    private static SiteContacts loadSiteContacts(SqlSession session) {
+        SettingsMapper settings = session.getMapper(SettingsMapper.class);
+        return SiteContacts.fromSettings(
+                settings.get("contacts_phone"),
+                settings.get("contacts_email"),
+                settings.get("contacts_address"),
+                settings.get("contacts_messengers"));
     }
 
     private LotCard toCard(LotMapper lotMapper, Lot lot) {

@@ -7,6 +7,8 @@ public class Category {
     private String title;
     private String coverImage;
     private String seoText;
+    /** Короткий зазывной под заголовком на плитке направления. */
+    private String lead;
     /** ISO-8601 UTC; null у строк, созданных до появления колонки. */
     private String createdAt;
     private int sort;
@@ -49,6 +51,14 @@ public class Category {
 
     public void setSeoText(String seoText) {
         this.seoText = seoText;
+    }
+
+    public String getLead() {
+        return lead;
+    }
+
+    public void setLead(String lead) {
+        this.lead = lead;
     }
 
     public String getCreatedAt() {

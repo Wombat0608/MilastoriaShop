@@ -16,6 +16,7 @@
             <h1>${view.pageTitle()}</h1>
             @if(!view.creating())
                 <div class="admin-head__actions">
+                    <a class="btn btn--line" href="/admin/media?lotId=${view.lot().getId()}">Из медиатеки</a>
                     <a class="btn btn--line" href="/admin/lots/${view.lot().getId()}/photos">Фото</a>
                     <a class="btn btn--line" href="/work/${view.lot().getSlug()}" target="_blank" rel="noopener">Сайт</a>
                 </div>
@@ -163,12 +164,12 @@
                         @if(view.lot() != null && view.lot().isFeatured())
                             <label class="admin-check">
                                 <input type="checkbox" name="featured" value="1" checked>
-                                Избранное (главная)
+                                Избранное (галерея)
                             </label>
                         @else
                             <label class="admin-check">
                                 <input type="checkbox" name="featured" value="1">
-                                Избранное (главная)
+                                Избранное (галерея)
                             </label>
                         @endif
                     </div>

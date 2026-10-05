@@ -8,5 +8,8 @@
     <div class="cat-tile__label">
         <span>${TextUtil.pluralWorks(cat.lotCount())}</span>
         <h3>${cat.title()}</h3>
+        @if(cat.lead() != null && !cat.lead().isBlank())
+            <p class="cat-tile__lead">${cat.lead()}</p>
+        @endif
     </div>
 </a>

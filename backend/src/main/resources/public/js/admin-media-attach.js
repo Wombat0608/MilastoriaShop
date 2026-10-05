@@ -1,6 +1,8 @@
 /* Прикрепление медиафайла-фото к лоту: кроп + watermark.
    Отправка: «Прикрепить» требует кроп ИЛИ явное «Без кропа» (no_crop=1).
-   Через очередь (?queue=) после attach идёт следующий файл. */
+   Через очередь (?queue=) после attach идёт следующий файл.
+   ВАЖНО: если <img> уже complete (кэш) — сразу инициализируем Cropper,
+   не ждём событие load (иначе рамка/WM «пропадают»). */
 
 (function () {
   var openBtn = document.getElementById("attach-crop-open");
@@ -14,8 +16,7 @@
 
   var cropper = null;
   var imageReady = false;
-  var cropDone = false;
-  var noCrop = false;
+  var loadingHooked = false;
 
   function hidden(id) {
     return document.getElementById(id);
@@ -41,23 +42,8 @@
       hint.className = "admin-error";
       form.insertBefore(hint, form.firstChild);
     }
-    hint.textContent = text;
-  }
-
-  function openStage() {
-    if (!stage || !imageEl) return;
-    showHint("");
-    stage.hidden = false;
-    document.body.style.overflow = "hidden";
-    if (!imageReady) {
-      imageEl.addEventListener("load", onImageLoad, { once: true });
-      imageEl.addEventListener("error", function () {
-        closeStage();
-        showHint("Не удалось показать превью для кропа. Нажмите «Без кропа» — файл возьмётся целиком, watermark по умолчанию.");
-      }, { once: true });
-    } else {
-      ensureCropper();
-    }
+    hint.textContent = text || "";
+    hint.hidden = !text;
   }
 
   function closeStage() {
@@ -66,39 +52,83 @@
     document.body.style.overflow = "";
   }
 
-  function onImageLoad() {
-    imageReady = true;
-    ensureCropper();
-  }
-
   function ensureCropper() {
     if (typeof Cropper === "undefined") {
-      showHint("Cropper.js не загрузился. Нажмите «Без кропа» или обновите страницу.");
+      showHint("Cropper.js не загрузился. Обновите страницу (Ctrl+Shift+R) или нажмите «Без кропа».");
       return;
     }
-    if (cropper) cropper.destroy();
+    if (!imageEl) return;
     try {
+      if (cropper) cropper.destroy();
       cropper = new Cropper(imageEl, {
         viewMode: 1,
         autoCropArea: 0.9,
         background: false,
         responsive: true,
-        crop() {
+        ready() {
           if (typeof window.__setCropCropper === "function") {
             window.__setCropCropper(cropper);
           }
           document.dispatchEvent(new CustomEvent("cropper:ready"));
         },
+        crop() {
+          if (typeof window.__setCropCropper === "function") {
+            window.__setCropCropper(cropper);
+          }
+        },
       });
+      // страховка: WM-раскладка и через ready Cropper, и сразу после new
+      setTimeout(function () {
+        if (typeof window.__setCropCropper === "function" && cropper) {
+          window.__setCropCropper(cropper);
+        }
+        document.dispatchEvent(new CustomEvent("cropper:ready"));
+      }, 50);
     } catch (e) {
       cropper = null;
       showHint("Кроп недоступен: " + e.message);
     }
   }
 
+  function onImageLoad() {
+    imageReady = true;
+    ensureCropper();
+  }
+
+  function hookImageLoad() {
+    if (!imageEl || loadingHooked) return;
+    loadingHooked = true;
+    imageEl.addEventListener("load", onImageLoad, { once: true });
+    imageEl.addEventListener("error", function () {
+      closeStage();
+      showHint("Не удалось показать превью для кропа. Нажмите «Без кропа» — файл возьмётся целиком, watermark по умолчанию.");
+    }, { once: true });
+  }
+
+  function openStage() {
+    if (!stage || !imageEl) return;
+    showHint("");
+    stage.hidden = false;
+    document.body.style.overflow = "hidden";
+
+    // уже загружено (кэш / complete) — load не придёт
+    if (imageEl.complete && imageEl.naturalWidth > 0) {
+      imageReady = true;
+      ensureCropper();
+      return;
+    }
+    if (imageReady) {
+      ensureCropper();
+      return;
+    }
+    hookImageLoad();
+    // если к моменту hook картинка уже complete
+    if (imageEl.complete && imageEl.naturalWidth > 0) {
+      onImageLoad();
+    }
+  }
+
   function applyNoCrop() {
-    noCrop = true;
-    cropDone = false;
     clearCropInputs();
     setVal("no_crop", "1");
     closeStage();
@@ -111,29 +141,24 @@
 
   if (openBtn) {
     openBtn.addEventListener("click", function () {
-      noCrop = false;
       setVal("no_crop", "");
       openStage();
     });
   }
 
   if (noCropBtn) {
-    noCropBtn.addEventListener("click", function () {
-      applyNoCrop();
-    });
+    noCropBtn.addEventListener("click", applyNoCrop);
   }
 
   if (cancelBtn) {
-    cancelBtn.addEventListener("click", function () {
-      // «Без кропа / закрыть» — явный отказ от интерактивного кропа
-      applyNoCrop();
-    });
+    cancelBtn.addEventListener("click", applyNoCrop);
   }
 
   if (confirmBtn) {
     confirmBtn.addEventListener("click", function () {
       if (!cropper) {
         showHint("Cropper не готов. Нажмите «Без кропа» или дождитесь загрузки превью.");
+        openStage();
         return;
       }
       var data = cropper.getData(true);
@@ -141,10 +166,8 @@
       setVal("crop-y", Math.max(0, data.y));
       setVal("crop-w", data.width);
       setVal("crop-h", data.height);
-      cropDone = true;
-      noCrop = false;
       setVal("no_crop", "");
-      // WM-поля пишет admin-crop-wm.js на том же кнопке (writeInputs)
+      // WM-поля пишет admin-crop-wm.js (capture=true на той же кнопке)
       closeStage();
       showHint("Кроп и watermark готовы — нажмите «Прикрепить».");
     });
@@ -163,7 +186,6 @@
         openStage();
         return;
       }
-      // повторный submit
       if (form.dataset.submitting === "1") {
         e.preventDefault();
       }
@@ -171,6 +193,6 @@
   }
 
   if (imageEl) {
-    setTimeout(openStage, 80);
+    setTimeout(openStage, 30);
   }
 })();

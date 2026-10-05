@@ -38,21 +38,29 @@
     openCropStage(file);
   });
 
-  cropImage.addEventListener("load", () => {
+  function startCropper() {
+    if (typeof Cropper === "undefined") return;
     if (cropper) cropper.destroy();
     cropper = new Cropper(cropImage, {
       viewMode: 1,
       autoCropArea: 1,
       background: false,
       responsive: true,
-      crop() {
+      ready() {
         if (typeof window.__setCropCropper === "function") {
           window.__setCropCropper(cropper);
         }
         document.dispatchEvent(new CustomEvent("cropper:ready"));
       },
+      crop() {
+        if (typeof window.__setCropCropper === "function") {
+          window.__setCropCropper(cropper);
+        }
+      },
     });
-  });
+  }
+
+  cropImage.addEventListener("load", startCropper);
 
   cancelBtn.addEventListener("click", () => {
     fileInput.value = "";

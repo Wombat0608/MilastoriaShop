@@ -82,40 +82,57 @@
                            autocomplete="off"
                            data-selected-lot-id="${view.selectedLotId() != null ? String.valueOf(view.selectedLotId()) : ""}"
                            data-selected-lot-title="${view.selectedLotTitle() != null ? view.selectedLotTitle() : ""}">
-                    <span class="admin-hint lot-picker__selected" id="attach-lot-selected">
-                        @if(view.selectedLotId() != null && view.selectedLotTitle() != null)
-                            Выбрано: ${view.selectedLotTitle()} (#${view.selectedLotId()})
-                        @else
-                            Лот не выбран — найдите по названию
-                        @endif
-                    </span>
                 </div>
                 <input type="hidden" name="lot_id" id="attach-lot-id"
                        value="${view.selectedLotId() != null ? String.valueOf(view.selectedLotId()) : ""}">
                 <input type="hidden" name="queue" value="${view.queueCsv()}">
-                <div class="lot-picker__list" id="attach-lot-list" role="listbox" aria-label="Список лотов">
+                <div class="admin-meta" id="attach-lot-selected" style="margin:0.25rem 0 0.75rem">
+                    @if(view.selectedLotId() != null && view.selectedLotTitle() != null)
+                        Выбрано: <strong>${view.selectedLotTitle()}</strong> (#${view.selectedLotId()})
+                    @else
+                        Выберите лот в списке ниже
+                    @endif
+                </div>
+
+                <div class="admin-lot-list" id="attach-lot-list" aria-label="Список лотов">
                     @for(AdminLotRow lot : view.lots())
-                        <button type="button"
-                                class="lot-picker__item${view.selectedLotId() != null && view.selectedLotId() == lot.getId() ? " is-selected" : ""}"
-                                role="option"
-                                aria-selected="${view.selectedLotId() != null && view.selectedLotId() == lot.getId() ? "true" : "false"}"
-                                data-lot-id="${lot.getId()}"
-                                data-search="${lot.getTitle()} ${lot.getSlug()} #${lot.getId()}">
-                            <span class="lot-picker__title">${lot.getTitle()}</span>
-                            <span class="lot-picker__meta">/${lot.getSlug()} · #${lot.getId()}
-                                @if(lot.getCategoryTitle() != null && !lot.getCategoryTitle().isBlank())
-                                    · ${lot.getCategoryTitle()}
+                        <article class="admin-lot-row${view.selectedLotId() != null && view.selectedLotId() == lot.getId() ? " is-selected" : ""}"
+                                 data-lot-id="${lot.getId()}"
+                                 data-search="${lot.getTitle()} ${lot.getSlug()} #${lot.getId()}">
+                            <span class="admin-lot-row__icon" aria-hidden="true">
+                                @if(lot.getCoverThumb() != null && !lot.getCoverThumb().isBlank())
+                                    <img src="${lot.getCoverThumb()}" alt="" loading="lazy">
+                                @else
+                                    <span class="admin-lot-row__placeholder">?</span>
                                 @endif
                             </span>
-                        </button>
+                            <div class="admin-lot-row__body grow">
+                                <span class="admin-lot-row__title">${lot.getTitle()}</span>
+                                <div class="admin-lot-row__meta">
+                                    <code class="admin-lot-row__slug">/${lot.getSlug()}</code>
+                                    <span class="admin-lot-row__id">#${lot.getId()}</span>
+                                    @if(lot.getCategoryTitle() != null && !lot.getCategoryTitle().isBlank())
+                                        <span class="admin-lot-row__cat">${lot.getCategoryTitle()}</span>
+                                    @endif
+                                    <span class="admin-lot-row__date">${lot.createdAtFormatted()}</span>
+                                    <span class="admin-status ${lot.published() ? "is-published" : ""}">${lot.getStatus()}</span>
+                                </div>
+                            </div>
+                            <div class="admin-lot-row__actions">
+                                <button type="button" class="btn btn--line lot-picker__pick" data-lot-id="${lot.getId()}">
+                                    Выбрать
+                                </button>
+                            </div>
+                        </article>
                     @endfor
                     @if(view.lots().isEmpty())
                         <div class="admin-empty">Лотов нет</div>
                     @endif
                 </div>
-                <p class="admin-hint">
-                    Список длинный? Введите фрагмент заголовка или slug — отфильтруется мгновенно.
-                    <a href="/admin/media/lots?mediaId=${view.media().getId()}">Открыть отдельный экран поиска лота</a>.
+
+                <p class="admin-hint" style="margin-top:0.75rem">
+                    Нажмите «Выбрать» у нужного лота (или кликните строку). Поиск — фильтрует список мгновенно.
+                    <a href="/admin/media/lots?mediaId=${view.media().getId()}">Открыть полный список лотов</a>.
                 </p>
             </div>
 
@@ -166,8 +183,8 @@
                 </div>
             </div>
 
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
-            <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+            <link rel="stylesheet" href="/css/cropper.min.css">
+            <script src="/js/cropper.min.js"></script>
             <script src="/js/admin-crop-wm.js"></script>
             <script src="/js/admin-media-attach.js"></script>
         @endif

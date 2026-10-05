@@ -102,8 +102,8 @@
             <div class="lightbox__caption" id="pv-caption"></div>
         </div>
 
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+        <link rel="stylesheet" href="/css/cropper.min.css">
+        <script src="/js/cropper.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
         <script src="/js/admin-upload.js"></script>
         <script src="/js/admin-crop-wm.js"></script>

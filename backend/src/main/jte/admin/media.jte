@@ -36,9 +36,10 @@
         @endif
 
         <p class="admin-hint" style="margin-bottom:0.75rem">
-            Загрузка фото и видео с телефона (можно пачкой). Watermark при выгрузке в медиатеку не ставится.
-            Кадрирование — по желанию, кнопка «Пропустить» быстро пропускает шаг.
-            Дата съёмки берётся из EXIF (или из имени файла). Список отсортирован по EXIF-дате.
+            Загрузка фото и видео с телефона (можно пачкой). Кадрирование — по желанию, «Пропустить» быстро пропускает шаг.
+            Фото тяжелее <strong>~3 МБ</strong> при сохранении в медиатеку сжимаются примерно до этого размера
+            (оригинал в контейнере не растёт безразмерно). Дата съёмки — из EXIF. Водяной знак при выгрузке в
+            медиатеку не ставится — он добавляется при прикреплении к лоту.
         </p>
 
         <label class="upload-picker" id="media-upload-picker">
@@ -200,8 +201,8 @@
             </div>
         </div>
 
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+        <link rel="stylesheet" href="/css/cropper.min.css">
+        <script src="/js/cropper.min.js"></script>
         <script src="/js/admin-media-upload.js"></script>
         <script src="/js/admin-media-select.js"></script>
     `

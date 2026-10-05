@@ -188,6 +188,10 @@
   cropImage.addEventListener("ready", function () {
     defaultSeState();
   });
+  document.addEventListener("cropper:ready", function () {
+    writeInputs();
+    layoutFromState();
+  });
 
   // Готово: сначала зафиксировать wm-поля, потом submit (capture=true)
   if (confirmBtn) {

@@ -32,6 +32,9 @@ public class ImageProcessor {
     /** Превью в медиатеке: маленькое, без watermark. */
     public static final Variant MEDIA_THUMB = new Variant("media_thumb", 480, 82, 0, 0);
 
+    /** Желаемый потолок размера «оригинала» в медиатеке (~3 МБ). */
+    public static final long MEDIA_ORIGINAL_MAX_BYTES = 3L * 1024 * 1024;
+
     private final String convertBinary;
     private final Path watermarkFile;
 
@@ -77,6 +80,78 @@ public class ImageProcessor {
             throws IOException, InterruptedException {
         Files.createDirectories(out.getParent());
         run(buildCommand(source, crop, variant, out, null, false));
+    }
+
+    /**
+     * Если файл в медиатеку больше {@code maxBytes} (~3 МБ) — пережимаем
+     * в JPEG примерно до этого размера (ImageMagick jpeg:extent, затем
+     * quality-ladder). Видео и файлы ≤ maxBytes не трогаем.
+     * Возвращает путь к файлу (исходный или новый .jpg); исходник при
+     * успешном сжатии удаляется.
+     */
+    public Path ensureMediaOriginalSize(Path source, long maxBytes)
+            throws IOException, InterruptedException {
+        if (!Files.isRegularFile(source) || Files.size(source) <= maxBytes) {
+            return source;
+        }
+        String lower = source.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".m4v")
+                || lower.endsWith(".webm") || lower.endsWith(".avi")) {
+            return source;
+        }
+
+        Path out = source.resolveSibling(source.getFileName().toString()
+                .replaceAll("\\.[^.]+$", "") + "__c.jpg");
+
+        // 1) IM: jpeg:extent — качество подбирается автоматически под размер
+        String extentMb = String.valueOf(Math.max(1, maxBytes / (1024 * 1024)));
+        try {
+            run(List.of(
+                    convertBinary, source.toString(),
+                    "-auto-orient", "-strip",
+                    "-define", "jpeg:extent=" + extentMb + "mb",
+                    out.toString()));
+            if (Files.isRegularFile(out) && Files.size(out) > 0
+                    && Files.size(out) <= (long) (maxBytes * 1.08)) {
+                Files.deleteIfExists(source);
+                return out;
+            }
+        } catch (IOException e) {
+            // jpeg:extent может не поддерживаться — пробуем лестницу качества
+        }
+
+        // 2) quality-ladder + мягкий упор по стороне (не увеличиваем)
+        int[] qualities = {88, 84, 80, 76, 72, 68, 64, 60, 55, 50, 45, 40};
+        long bestSize = Long.MAX_VALUE;
+        for (int q : qualities) {
+            Files.deleteIfExists(out);
+            run(List.of(
+                    convertBinary, source.toString(),
+                    "-auto-orient", "-strip",
+                    "-interlace", "Plane",
+                    "-resize", "4000x4000>",
+                    "-quality", String.valueOf(q),
+                    out.toString()));
+            if (!Files.isRegularFile(out) || Files.size(out) <= 0) {
+                continue;
+            }
+            long sz = Files.size(out);
+            if (sz < bestSize) {
+                bestSize = sz;
+            }
+            if (sz <= maxBytes) {
+                Files.deleteIfExists(source);
+                return out;
+            }
+        }
+
+        // лучший вариант всё же меньше исходника — оставляем его
+        if (Files.isRegularFile(out) && bestSize < Files.size(source)) {
+            Files.deleteIfExists(source);
+            return out;
+        }
+        Files.deleteIfExists(out);
+        return source;
     }
 
     private List<String> buildCommand(Path source, CropRect crop, Variant variant, Path out,

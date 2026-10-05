@@ -164,6 +164,25 @@ public class MediaAdminController {
             Path original = mediaDir.resolve(token + ext);
             Files.move(staging, original, StandardCopyOption.REPLACE_EXISTING);
 
+            boolean compressed = false;
+            long sizeBefore = Files.size(original);
+            if (MediaFile.KIND_IMAGE.equals(kind)) {
+                Path before = original;
+                try {
+                    original = imageProcessor.ensureMediaOriginalSize(
+                            original, ImageProcessor.MEDIA_ORIGINAL_MAX_BYTES);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    // сжатие необязательно — оставляем файл как есть
+                    log.warn("Прервано сжатие медиафайла {}", originalName);
+                }
+                compressed = !original.equals(before) || Files.size(original) < sizeBefore;
+                if (compressed) {
+                    log.info("Медиатека: сжат {} → {} (было {} байт)",
+                            originalName, original.getFileName(), sizeBefore);
+                }
+            }
+
             ExifData exif = ExifReader.read(original, originalName);
             Integer width = null;
             Integer height = null;
@@ -250,6 +269,9 @@ public class MediaAdminController {
             body.put("kind", kind);
             body.put("originalName", originalName);
             body.put("exifDatetime", exif.dateTimeOriginal());
+            body.put("sizeBefore", sizeBefore);
+            body.put("sizeAfter", Files.size(original));
+            body.put("compressed", compressed);
             ctx.json(body);
         } catch (IOException e) {
             log.error("Ошибка загрузки медиафайла {}", originalName, e);

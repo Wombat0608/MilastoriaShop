@@ -2,6 +2,42 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="ru.milastoria.mapper.AnalyticsMapper">
 
+    <!-- Сканерские пути не считаем даже в исторических строках -->
+    <sql id="notJunkPath">
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/.env%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/.git%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/.svn%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/.htaccess%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/wp-%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/xmlrpc%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/phpmyadmin%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/adminer%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/info.php%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/config.php%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/wp-config%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/cgi-bin%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/actuator%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%/vendor/%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%go-http-client%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%python-urllib%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%sqlmap%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%nikto%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%nmap%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%masscan%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%zgrab%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%dirbuster%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%gobuster%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%scrapy%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%libwww%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%java/%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%okhttp%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%curl%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%wget%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%headless%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%postman%'
+        AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%python-requests%'
+    </sql>
+
     <insert id="insertVisit">
         INSERT INTO analytics_visits (visitor_id, session_id, path, referrer, user_agent, created_at)
         VALUES (#{visitorId}, #{sessionId}, #{path}, #{referrer}, #{userAgent}, #{createdAt})
@@ -11,24 +47,28 @@
         SELECT COUNT(DISTINCT visitor_id)
         FROM analytics_visits
         WHERE created_at &gt;= #{since}
+        <include refid="notJunkPath"/>
     </select>
 
     <select id="countPageViews" resultType="int">
         SELECT COUNT(*)
         FROM analytics_visits
         WHERE created_at &gt;= #{since}
+        <include refid="notJunkPath"/>
     </select>
 
     <select id="countSessions" resultType="int">
         SELECT COUNT(DISTINCT session_id)
         FROM analytics_visits
         WHERE created_at &gt;= #{since}
+        <include refid="notJunkPath"/>
     </select>
 
     <select id="topPaths" resultType="ru.milastoria.view.PathStat">
         SELECT path, COUNT(*) AS cnt
         FROM analytics_visits
         WHERE created_at &gt;= #{since}
+        <include refid="notJunkPath"/>
         GROUP BY path
         ORDER BY cnt DESC
         LIMIT #{limit}
@@ -40,6 +80,7 @@
             SELECT session_id, MIN(path) AS path
             FROM analytics_visits
             WHERE created_at &gt;= #{since}
+            <include refid="notJunkPath"/>
             GROUP BY session_id
         ) AS firsts
         GROUP BY path
@@ -53,16 +94,19 @@
         WHERE created_at &gt;= #{since}
           AND referrer IS NOT NULL
           AND referrer != ''
+        <include refid="notJunkPath"/>
         GROUP BY path
         ORDER BY cnt DESC
         LIMIT #{limit}
     </select>
 
+    <!-- «Прямые» = сессии без источника, не количество просмотров -->
     <select id="directEntryCount" resultType="int">
-        SELECT COUNT(*)
+        SELECT COUNT(DISTINCT session_id)
         FROM analytics_visits
         WHERE created_at &gt;= #{since}
           AND (referrer IS NULL OR referrer = '')
+        <include refid="notJunkPath"/>
     </select>
 
     <select id="dailyStats" resultType="ru.milastoria.view.DailyStat">
@@ -71,6 +115,7 @@
                COUNT(*) AS views
         FROM analytics_visits
         WHERE created_at &gt;= #{since}
+        <include refid="notJunkPath"/>
         GROUP BY day
         ORDER BY day
     </select>
@@ -78,6 +123,8 @@
     <select id="recentSessionIds" resultType="string">
         SELECT session_id
         FROM analytics_visits
+        WHERE 1=1
+        <include refid="notJunkPath"/>
         GROUP BY session_id
         ORDER BY MAX(created_at) DESC
         LIMIT #{limit}

@@ -40,6 +40,14 @@ public class AnalyticsTracker {
             "/favicon", "/robots", "/sitemap"
     };
 
+    /** Сканеры/вандальские пути — не трафик сайта (WP/PHP/.env probes). */
+    private static final String[] JUNK_PATH_MARKERS = {
+            "/.env", "/.git", "/.svn", "/.htaccess", "/wp-", "/xmlrpc",
+            "/phpmyadmin", "/pma", "/adminer", "/info.php", "/config.php",
+            "/wp-config", "/vendor/", "/cgi-bin", "/actuator", "/.aws",
+            "/.docker", "/debug", "/console", "/.well-known/acme-challenge/"
+    };
+
     private final SqlSessionFactory sqlSessionFactory;
     private final String sessionSecret;
 
@@ -109,6 +117,12 @@ public class AnalyticsTracker {
                 return true;
             }
         }
+        String lower = path.toLowerCase(Locale.ROOT);
+        for (String marker : JUNK_PATH_MARKERS) {
+            if (lower.contains(marker)) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -118,9 +132,18 @@ public class AnalyticsTracker {
             return true;
         }
         String ua = userAgent.toLowerCase(Locale.ROOT);
+        // неполные/авто-UA сканеров
+        if (ua.equals("mozilla/5.0") || ua.equals("mozilla/5.0 ")) {
+            return true;
+        }
         return ua.contains("bot") || ua.contains("spider") || ua.contains("crawler")
                 || ua.contains("slurp") || ua.contains("headless") || ua.contains("curl")
-                || ua.contains("wget") || ua.contains("python-requests") || ua.contains("postman");
+                || ua.contains("wget") || ua.contains("python-requests") || ua.contains("postman")
+                || ua.contains("go-http-client") || ua.contains("java/") || ua.contains("libwww")
+                || ua.contains("scrapy") || ua.contains("zgrab") || ua.contains("nikto")
+                || ua.contains("masscan") || ua.contains("nmap") || ua.contains("sqlmap")
+                || ua.contains("dirbuster") || ua.contains("gobuster") || ua.contains("fuzz")
+                || ua.contains("python-urllib") || ua.contains("okhttp") || ua.contains("axios");
     }
 
     private String ensureVisitorId(Context ctx) {

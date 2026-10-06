@@ -26,7 +26,8 @@
             <h2>Сводка</h2>
             <p class="admin-hint">
                 Серверная аналитика (без внешних трекеров). Уникальные посетители —
-                анонимные cookie, не IP. Боты и запросы админки не учитываются.
+                анонимные cookie, не IP. Боты, сканеры (.env, xmlrpc, git) и админка
+                не учитываются. «Прямые» — сессии без источника, не просмотры.
             </p>
 
             <div class="stats-periods" role="navigation" aria-label="Период">
@@ -68,7 +69,7 @@
                 <div class="stats-card stats-card--soft">
                     <span class="stats-card__label">Прямые заходы, 7 дней</span>
                     <strong>${view.direct7()}</strong>
-                    <span class="stats-card__sub">без источника в URL</span>
+                    <span class="stats-card__sub">сессий без источника</span>
                 </div>
             </div>
         </section>

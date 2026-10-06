@@ -1399,7 +1399,7 @@ form.is-submitting .btn--fill {
 
 .media-card__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.45rem;
   margin-top: 0.25rem;
   align-items: stretch;
@@ -1409,17 +1409,21 @@ form.is-submitting .btn--fill {
 .media-card__actions form,
 .media-card__actions form .btn,
 .media-card__btn {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: none;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 40px;
   padding: 0.35rem 0.7rem;
   font-size: 0.85rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .media-card__actions form {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .media-card__actions form .btn {
@@ -1673,7 +1677,9 @@ form.is-submitting .btn--fill {
 
   .media-card__actions .btn,
   .media-card__actions form,
-  .media-card__actions form button {
+  .media-card__actions form button,
+  .media-card__btn {
     width: 100%;
+    max-width: 100%;
   }
 }

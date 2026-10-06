@@ -45,7 +45,8 @@ public class AnalyticsTracker {
             "/.env", "/.git", "/.svn", "/.htaccess", "/wp-", "/xmlrpc",
             "/phpmyadmin", "/pma", "/adminer", "/info.php", "/config.php",
             "/wp-config", "/vendor/", "/cgi-bin", "/actuator", "/.aws",
-            "/.docker", "/debug", "/console", "/.well-known/acme-challenge/"
+            "/.docker", "/debug", "/console", "/.well-known/acme-challenge/",
+            ".php" // публичный сайт не отдаёт .php-маршруты
     };
 
     private final SqlSessionFactory sqlSessionFactory;

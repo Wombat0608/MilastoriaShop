@@ -18,6 +18,7 @@
         AND LOWER(COALESCE(path, '')) NOT LIKE '%/cgi-bin%'
         AND LOWER(COALESCE(path, '')) NOT LIKE '%/actuator%'
         AND LOWER(COALESCE(path, '')) NOT LIKE '%/vendor/%'
+        AND LOWER(COALESCE(path, '')) NOT LIKE '%.php%'
         AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%go-http-client%'
         AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%python-urllib%'
         AND LOWER(COALESCE(user_agent, '')) NOT LIKE '%sqlmap%'

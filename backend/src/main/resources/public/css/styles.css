@@ -1948,3 +1948,40 @@ p {
   .manifesto__facts div { grid-template-columns: 1fr; gap: 0.2rem; }
   .spec-list li { grid-template-columns: 1fr; gap: 0.2rem; }
 }
+
+/* ——— финальные правила: landscape, стрелки не на «Ателье с 2016 года» ———
+   Стоят в конце файла, чтобы перекрывать более ранние padding hero__content. */
+@media (orientation: landscape) {
+  .hero .wrap.hero__content,
+  .hero .hero__content {
+    /* слева — запас под круг стрелки (~44–56px) + воздух */
+    padding-left: 5rem;
+    padding-right: 1rem;
+  }
+  .hero__content .eyebrow {
+    /* гарантия: даже если padding не применился, текст чуть правее */
+    margin-left: 0.15rem;
+  }
+  .hero-nav {
+    z-index: 2; /* текст hero z-index 1… поднимем content выше стрелок по z */
+  }
+  .hero__content {
+    z-index: 5;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .hero .wrap.hero__content,
+  .hero .hero__content {
+    padding-top: 2.75rem; /* контент ниже стрелок по вертикали */
+    padding-left: 5.25rem;
+  }
+  .hero-nav__btn {
+    width: 42px;
+    height: 42px;
+  }
+  .hero-nav__icon {
+    width: 18px;
+    height: 18px;
+  }
+}

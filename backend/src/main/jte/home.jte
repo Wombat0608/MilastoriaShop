@@ -38,8 +38,16 @@
                     </div>
                     <div class="hero__shade"></div>
                     <div class="hero-nav">
-                        <button type="button" class="hero-nav__btn" data-hero-prev aria-label="Предыдущий слайд">‹</button>
-                        <button type="button" class="hero-nav__btn" data-hero-next aria-label="Следующий слайд">›</button>
+                        <button type="button" class="hero-nav__btn" data-hero-prev aria-label="Предыдущий слайд">
+                            <svg class="hero-nav__icon" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false">
+                                <path d="M16 3 L6 12 L16 21 Z"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="hero-nav__btn" data-hero-next aria-label="Следующий слайд">
+                            <svg class="hero-nav__icon" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false">
+                                <path d="M8 3 L18 12 L8 21 Z"/>
+                            </svg>
+                        </button>
                     </div>
                     <div class="hero-dots" data-hero-dots aria-label="Слайды шапки"></div>
                 @else

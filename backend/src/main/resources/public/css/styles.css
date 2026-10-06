@@ -512,36 +512,53 @@ p {
 
 .hero-nav {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: auto;
   z-index: 3;
   pointer-events: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 0 1rem;
+  padding: 0.85rem 0.85rem 0; /* небольшой отступ сверху, не по центру высоты */
 }
 
 .hero-nav__btn {
   pointer-events: auto;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.45);
-  background: rgba(24,18,12,0.35);
+  border: 1px solid rgba(255,255,255,0.5);
+  background: rgba(24,18,12,0.4);
   color: #fff;
-  font-size: 1.4rem;
-  line-height: 1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  line-height: 0;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
+.hero-nav__icon {
+  display: block;
+  fill: currentColor;
+  flex-shrink: 0;
+  /* треугольник чуть левее/правее центра — как у «стрелки» */
+  margin-left: 2px; /* ← */
+}
+
+.hero-nav__btn[data-hero-next] .hero-nav__icon,
+.hero-nav .hero-nav__btn:last-child .hero-nav__icon {
+  margin-left: 0;
+  margin-right: 2px;
+}
+
 .hero-nav__btn:hover {
-  background: rgba(169,119,47,0.75);
+  background: rgba(169,119,47,0.8);
   border-color: var(--gold-soft);
 }
 
@@ -1692,6 +1709,17 @@ p {
   /* Портретные кадры с телефона: кроп выше, чтобы лицо/платье не уезжало */
   .hero__media img { object-position: center 28%; }
   .hero__content { padding: 3rem 0 3.25rem; }
+  .hero-nav {
+    padding: 0.7rem 0.7rem 0;
+  }
+  .hero-nav__btn {
+    width: 50px;
+    height: 50px;
+  }
+  .hero-nav__icon {
+    width: 24px;
+    height: 24px;
+  }
   .section { padding: 4rem 0; }
 
   .cat-bento,
@@ -1881,6 +1909,18 @@ p {
 
   .hero { min-height: 70svh; }
   .hero__content { padding: 1.5rem 0 1.75rem; }
+  /* стрелки сверху — не перекрывают H1 внизу */
+  .hero-nav {
+    padding: 0.65rem 0.65rem 0;
+  }
+  .hero-nav__btn {
+    width: 48px;
+    height: 48px;
+  }
+  .hero-nav__icon {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 @media (max-width: 420px) {

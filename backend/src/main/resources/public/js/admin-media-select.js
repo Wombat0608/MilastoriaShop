@@ -1,5 +1,6 @@
 /* Медиатека: множественный выбор файлов + прикрепление к лоту.
-   Submit формы — через AdminLoading (см. admin.js); здесь только синхронизация. */
+   Кнопка «Прикрепить» всегда с подписью «Прикрепить», disabled без выбора.
+   Фильтр Все/Фото/Видео — onchange submit в media.jte. */
 
 (function () {
   var grid = document.getElementById("media-grid");
@@ -10,6 +11,7 @@
   var batchForm = document.getElementById("media-batch-form");
   var batchIdsField = document.getElementById("media-batch-ids");
   var batchSubmit = document.getElementById("media-batch-submit");
+  var filterForm = document.getElementById("media-filter-form");
   if (!grid || !bar || !batchForm) return;
 
   var isPost = (batchForm.method || "get").toLowerCase() === "post";
@@ -27,7 +29,6 @@
   function sync() {
     var ids = selectedIds();
     var n = ids.length;
-    bar.hidden = checks().length === 0;
     if (countEl) {
       countEl.textContent = n === 0 ? "0 выбрано" : n + " выбрано";
     }
@@ -39,11 +40,7 @@
     }
     if (batchSubmit) {
       batchSubmit.disabled = n === 0;
-      batchSubmit.textContent = n === 0
-        ? "Сначала отметьте файлы"
-        : (isPost
-          ? "Прикрепить выбранные к лоту (" + n + ")"
-          : "Выбрать лот и прикрепить (" + n + ")");
+      batchSubmit.textContent = "Прикрепить";
     }
     Array.prototype.slice.call(batchForm.querySelectorAll("input[data-batch-id]"))
       .forEach(function (el) { el.remove(); });
@@ -60,6 +57,26 @@
         batchForm.appendChild(input);
       });
     }
+  }
+
+  // фильтр Все / Фото / Видео — submit формы поиска
+  if (filterForm) {
+    filterForm.addEventListener("submit", function (e) {
+      // сброс страницы при смене фильтра
+      var pageInput = filterForm.querySelector('input[name="page"]');
+      if (!pageInput) {
+        // page не передаём — сервер откроет стр. 1
+      }
+    });
+    var radios = filterForm.querySelectorAll('input[name="kind"]');
+    radios.forEach(function (r) {
+      r.addEventListener("change", function () {
+        // сброс page=1 при смене kind
+        var pageHidden = filterForm.querySelector('input[name="page"]');
+        if (pageHidden) pageHidden.value = "1";
+        filterForm.submit();
+      });
+    });
   }
 
   grid.addEventListener("change", function (e) {
@@ -87,7 +104,6 @@
     var ids = selectedIds();
     if (!ids.length) {
       e.preventDefault();
-      // важно: НЕ показываем вертушку — иначе admin.js её оставит
       return;
     }
   });

@@ -22,9 +22,8 @@
             </p>
         @else
             <p class="admin-hint" style="margin-bottom:0.75rem">
-                Отметьте нужные файлы checkbox'ами и прикрепите к лоту:
-                можно выбрать сразу несколько.
-                Для точного кропа откройте один файл кнопкой «Кроп / watermark».
+                Отметьте файлы checkbox'ами и нажмите «Прикрепить» — можно сразу несколько.
+                Кнопка «Прикрепить» на карточке открывает кроп и watermark.
             </p>
         @endif
 
@@ -80,8 +79,9 @@
             </form>
         </details>
 
-        <form class="admin-search" method="get" action="/admin/media" style="margin-top:1.25rem">
+        <form class="admin-search" method="get" action="/admin/media" id="media-filter-form" style="margin-top:1.25rem">
             <input type="hidden" name="lotId" value="${view.lotId() != null ? String.valueOf(view.lotId()) : ""}">
+            <input type="hidden" name="page" value="1">
             <div class="admin-search__row">
                 <label for="media-q">Поиск</label>
                 <input id="media-q" name="q" type="search"
@@ -91,32 +91,32 @@
             <div class="admin-cat-filter" style="margin-top:0.35rem">
                 <label class="admin-cat-check">
                     @if(view.kind() == null)
-                        <input type="radio" name="kind" value="" checked>
+                        <input type="radio" name="kind" value="" checked onchange="this.form.submit()">
                     @else
-                        <input type="radio" name="kind" value="">
+                        <input type="radio" name="kind" value="" onchange="this.form.submit()">
                     @endif
                     <span>Все</span>
                 </label>
                 <label class="admin-cat-check">
                     @if(view.kind() != null && view.kind().equals("image"))
-                        <input type="radio" name="kind" value="image" checked>
+                        <input type="radio" name="kind" value="image" checked onchange="this.form.submit()">
                     @else
-                        <input type="radio" name="kind" value="image">
+                        <input type="radio" name="kind" value="image" onchange="this.form.submit()">
                     @endif
                     <span>Фото</span>
                 </label>
                 <label class="admin-cat-check">
                     @if(view.kind() != null && view.kind().equals("video"))
-                        <input type="radio" name="kind" value="video" checked>
+                        <input type="radio" name="kind" value="video" checked onchange="this.form.submit()">
                     @else
-                        <input type="radio" name="kind" value="video">
+                        <input type="radio" name="kind" value="video" onchange="this.form.submit()">
                     @endif
                     <span>Видео</span>
                 </label>
             </div>
         </form>
 
-        <div class="media-bulk-bar" id="media-bulk-bar" hidden>
+        <div class="media-bulk-bar" id="media-bulk-bar">
             <div class="media-bulk-bar__info">
                 <label class="admin-cat-check">
                     <input type="checkbox" id="media-select-all">
@@ -129,16 +129,16 @@
                     <form method="post" action="/admin/media/attach-batch" id="media-batch-form"
                           data-loading-message="Прикрепляю файлы к лоту…">
                         <input type="hidden" name="lot_id" value="${view.lotId()}">
-                        <button type="submit" class="btn btn--fill" id="media-batch-submit"
+                        <button type="submit" class="btn btn--fill" id="media-batch-submit" disabled
                                 data-confirm="Прикрепить выбранные файлы к лоту? Файлы уйдут из медиатеки в папку лота.">
-                            Прикрепить выбранные к лоту
+                            Прикрепить
                         </button>
                     </form>
                 @else
                     <form method="get" action="/admin/media/lots" id="media-batch-form" data-no-loading>
                         <input type="hidden" name="mediaIds" id="media-batch-ids" value="">
-                        <button type="submit" class="btn btn--fill" id="media-batch-submit">
-                            Прикрепить выбранные к лоту…
+                        <button type="submit" class="btn btn--fill" id="media-batch-submit" disabled>
+                            Прикрепить
                         </button>
                     </form>
                 @endif
@@ -194,11 +194,11 @@
                                 <span>${view.kindLabel(f.getKind())}</span>
                             </div>
                             <div class="media-card__actions">
-                                <a class="btn btn--line" href="${view.attachHref(f.getId())}">Кроп / watermark</a>
+                                <a class="btn btn--line media-card__btn" href="${view.attachHref(f.getId())}">Прикрепить</a>
                                 <form method="post" action="/admin/media/${f.getId()}/delete"
                                       data-confirm="Удалить файл из медиатеки?">
                                     <input type="hidden" name="back" value="/admin/media?${view.pageQuery(view.page())}">
-                                    <button type="submit" class="btn btn--line">Удалить</button>
+                                    <button type="submit" class="btn btn--line media-card__btn">Удалить</button>
                                 </form>
                             </div>
                         </div>

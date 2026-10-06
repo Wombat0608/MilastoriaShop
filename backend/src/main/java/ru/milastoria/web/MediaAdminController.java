@@ -49,7 +49,7 @@ import java.util.UUID;
 public class MediaAdminController {
 
     private static final Logger log = LoggerFactory.getLogger(MediaAdminController.class);
-    public static final int PAGE_SIZE = 24;
+    public static final int PAGE_SIZE = 25; // 5×5 на типичном ПК — без «пустой» ячейки
     public static final int LOT_PICKER_PAGE_SIZE = 50;
 
     private static final List<String> IMAGE_EXTS = List.of(
@@ -87,6 +87,7 @@ public class MediaAdminController {
         Long lotId = parseLongOrNull(ctx.queryParam("lotId"));
         String lotTitle = null;
         String qLike = query == null ? null : query.toLowerCase(Locale.ROOT);
+        // фильтр фото/видео всегда открывает 1-ю страницу (page в форме = 1)
 
         try (SqlSession session = sqlSessionFactory.openSession()) {
             MediaMapper mapper = session.getMapper(MediaMapper.class);

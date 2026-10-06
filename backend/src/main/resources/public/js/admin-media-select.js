@@ -1,8 +1,9 @@
 /* Медиатека: множественный выбор файлов + прикрепление к лоту.
    Кнопка «Прикрепить» всегда с подписью «Прикрепить», disabled без выбора.
-   Фильтр Все/Фото/Видео — onchange submit в media.jte. */
+   Фильтры kind/applied: submit в jte onchange + JS (page=1). */
 
 (function () {
+  var filterForm = document.getElementById("media-filter-form");
   var grid = document.getElementById("media-grid");
   var bar = document.getElementById("media-bulk-bar");
   var countEl = document.getElementById("media-bulk-count");
@@ -11,7 +12,19 @@
   var batchForm = document.getElementById("media-batch-form");
   var batchIdsField = document.getElementById("media-batch-ids");
   var batchSubmit = document.getElementById("media-batch-submit");
-  var filterForm = document.getElementById("media-filter-form");
+
+  // Фильтры — ДО early return: пустая «Прикреплённые» без grid не должна ловить радиокнопки
+  if (filterForm) {
+    function submitFilter() {
+      var pageHidden = filterForm.querySelector('input[name="page"]');
+      if (pageHidden) pageHidden.value = "1";
+      filterForm.submit();
+    }
+    filterForm.querySelectorAll('input[name="kind"], input[name="applied"]').forEach(function (r) {
+      r.addEventListener("change", submitFilter);
+    });
+  }
+
   if (!grid || !bar || !batchForm) return;
 
   var isPost = (batchForm.method || "get").toLowerCase() === "post";
@@ -57,19 +70,6 @@
         batchForm.appendChild(input);
       });
     }
-  }
-
-  // фильтр kind + applied — только submit из JS (в jte у applied нет onchange,
-  // чтобы не было двойного submit и «залипшего» URL без applied)
-  if (filterForm) {
-    function submitFilter() {
-      var pageHidden = filterForm.querySelector('input[name="page"]');
-      if (pageHidden) pageHidden.value = "1";
-      filterForm.submit();
-    }
-    filterForm.querySelectorAll('input[name="kind"], input[name="applied"]').forEach(function (r) {
-      r.addEventListener("change", submitFilter);
-    });
   }
 
   grid.addEventListener("change", function (e) {

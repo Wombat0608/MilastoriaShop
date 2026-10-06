@@ -115,28 +115,28 @@
                 </label>
             </div>
             <div class="admin-cat-filter" style="margin-top:0.35rem" aria-label="Прикрепление">
-                <!-- onchange submit только здесь; JS admin-media-select.js дублирует и мог гасить фильтр -->
+                <!-- onchange обязателен: на пустом списке grid нет, JS bulk может не завестись -->
                 <label class="admin-cat-check">
                     @if(!view.showingAttached() && !view.showingAll())
-                        <input type="radio" name="applied" value="0" checked>
+                        <input type="radio" name="applied" value="0" checked onchange="this.form.submit()">
                     @else
-                        <input type="radio" name="applied" value="0">
+                        <input type="radio" name="applied" value="0" onchange="this.form.submit()">
                     @endif
                     <span>Не прикреплённые</span>
                 </label>
                 <label class="admin-cat-check">
                     @if(view.showingAttached())
-                        <input type="radio" name="applied" value="1" checked>
+                        <input type="radio" name="applied" value="1" checked onchange="this.form.submit()">
                     @else
-                        <input type="radio" name="applied" value="1">
+                        <input type="radio" name="applied" value="1" onchange="this.form.submit()">
                     @endif
                     <span>Прикреплённые</span>
                 </label>
                 <label class="admin-cat-check">
                     @if(view.showingAll())
-                        <input type="radio" name="applied" value="all" checked>
+                        <input type="radio" name="applied" value="all" checked onchange="this.form.submit()">
                     @else
-                        <input type="radio" name="applied" value="all">
+                        <input type="radio" name="applied" value="all" onchange="this.form.submit()">
                     @endif
                     <span>Все</span>
                 </label>

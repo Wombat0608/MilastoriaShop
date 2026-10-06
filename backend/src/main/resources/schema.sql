@@ -182,11 +182,14 @@ CREATE TABLE IF NOT EXISTS media_files (
     crop_y         INTEGER,
     crop_w         INTEGER,
     crop_h         INTEGER,
-    group_id       INTEGER
+    group_id       INTEGER,
+    -- 1 = уже прикреплён к лоту. Файл и запись остаются, скрыты из общего списка
+    applied        INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_files_exif_dt ON media_files(exif_datetime);
 CREATE INDEX IF NOT EXISTS idx_media_files_uploaded ON media_files(uploaded_at);
 CREATE INDEX IF NOT EXISTS idx_media_files_kind ON media_files(kind);
--- idx_media_files_group создаётся в App.initSchema после ADD COLUMN group_id
+-- idx_media_files_group и idx_media_files_applied создаются в App.initSchema
+-- после ADD COLUMN (на существующей БД колонки ещё нет в момент runScript)
 

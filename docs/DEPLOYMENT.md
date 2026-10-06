@@ -371,25 +371,46 @@ sudo rsync -a /path/from/local/prototype/assets/ \
 
 ## 6. Обновление приложения
 
+> **На прод VPS git нет** — дерево `/opt/milastoria` обновляется **rsync**.
+> Короткий runbook «без блужданий»: [`DEPLOY-PROD.md`](DEPLOY-PROD.md).
+> Ниже — общий порядок.
+
 ```bash
-cd /opt/milastoria
-git pull
-docker compose up -d --build
-docker compose logs -f app   # дождитесь старта
+# локально
+cd /mnt/storage/Projects/MilaStoria_Tilda
+
+# 1) бэкап тома на VPS (обязательно)
+ssh milastoria 'cd /opt/milastoria && \
+  docker compose exec -T app tar -C /app/data -czf - . \
+  > /var/backups/milastoria-pre-deploy-$(date +%Y%m%d-%H%M%S).tgz'
+
+# 2) rsync кода (НЕ трогать backend/config/app.yml!)
+rsync -av --exclude target/ --exclude data/ --exclude config/app.yml \
+  --exclude .idea/ --exclude '*.db' --exclude milastoria-app.jar \
+  backend/ milastoria:/opt/milastoria/backend/
+rsync -av docker-compose.yml Caddyfile milastoria:/opt/milastoria/
+
+# 3) rebuild + smoke
+ssh milastoria 'cd /opt/milastoria && docker compose up -d --build && \
+  docker compose logs app --since 2m | tail -40'
+curl -sI https://milastoria.com | head -5
 ```
+
+Если в git-контуре VPS появится — `git pull && docker compose up -d --build`.
 
 Рекомендуемый порядок (БД без миграционного движка на v1):
 
-1. **Бэкап тома** (см. §7) до `git pull` / rebuild.
-2. `git pull` + `up -d --build`.
+1. **Бэкап тома** (см. §7 / `DEPLOY-PROD.md` §2) до rsync/rebuild.
+2. rsync кода + `docker compose up -d --build`.
 3. Проверить `/`, `/gallery`, `/admin`, загрузку фото.
-4. При сбое — откат кода: `git checkout <тег>` + rebuild + восстановить
+4. При сбое — откат кода rsync'ом предыдущей копии + восстановить
    backup БД, если schema.sql менялся несовместимо.
 
 В `App.java` схема применяется `CREATE TABLE IF NOT EXISTS` + ручные
-`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`-проверки. Простые добавления
-колонок переживают обновление; **смены типов/переименования** требуют
-ручной миграции файла БД.
+`addColumnIfMissing`. Простые добавления колонок переживают обновление;
+**`CREATE INDEX` на новую колонку в `schema.sql` — нельзя** (падает на старой БД до ALTER);
+индексы создавать в `App.java` после `addColumnIfMissing`. **Смены
+типов/переименования** требуют ручной миграции файла БД.
 
 ---
 
@@ -648,6 +669,7 @@ docker compose down
 
 | Файл | Назначение |
 |------|------------|
+| [`docs/DEPLOY-PROD.md`](DEPLOY-PROD.md) | **короткий runbook деплоя на этот VPS** |
 | [`docker-compose.yml`](../docker-compose.yml) | сервисы `app` + `caddy`, volume |
 | [`Caddyfile`](../Caddyfile) | TLS, reverse proxy, security headers |
 | [`backend/Dockerfile`](../backend/Dockerfile) | multi-stage сборка + ImageMagick + ffmpeg |

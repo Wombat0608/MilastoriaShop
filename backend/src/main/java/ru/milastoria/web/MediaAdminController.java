@@ -83,6 +83,7 @@ public class MediaAdminController {
     public void listPage(Context ctx) {
         String query = normalize(ctx.queryParam("q"));
         String kind = normalizeKind(ctx.queryParam("kind"));
+        String applied = normalizeAppliedFilter(ctx.queryParam("applied"));
         int page = parsePage(ctx.queryParam("page"));
         String error = ctx.queryParam("error");
         String notice = ctx.queryParam("notice");
@@ -93,13 +94,13 @@ public class MediaAdminController {
 
         try (SqlSession session = sqlSessionFactory.openSession()) {
             MediaMapper mapper = session.getMapper(MediaMapper.class);
-            int total = mapper.countPage(kind, qLike);
+            int total = mapper.countPage(kind, qLike, applied);
             int totalPages = Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
             if (page > totalPages) {
                 page = totalPages;
             }
             int offset = (page - 1) * PAGE_SIZE;
-            List<MediaFile> files = mapper.findPage(kind, qLike, PAGE_SIZE, offset);
+            List<MediaFile> files = mapper.findPage(kind, qLike, applied, PAGE_SIZE, offset);
             if (lotId != null) {
                 Lot lot = session.getMapper(LotMapper.class).findById(lotId);
                 if (lot == null) {
@@ -114,8 +115,22 @@ public class MediaAdminController {
                             lotId, lotTitle,
                             String.valueOf(co.maxBytes() / (1024 * 1024)),
                             String.valueOf(co.minQuality()),
-                            String.valueOf(co.maxEdge())));
+                            String.valueOf(co.maxEdge()),
+                            applied));
         }
+    }
+
+    /** "0"/null → свободные (скрыть прикреплённые), "1" → прикреплённые, "all" → все. */
+    private static String normalizeAppliedFilter(String raw) {
+        String v = normalize(raw);
+        if (v == null || v.isBlank()) {
+            return "0";
+        }
+        return switch (v) {
+            case "1", "true", "attached" -> "1";
+            case "all", "both" -> "all";
+            default -> "0";
+        };
     }
 
     private static ImageProcessor.MediaCompressOptions loadCompressOptions(SqlSession session) {
@@ -305,6 +320,7 @@ public class MediaAdminController {
                 file.setCropW(crop.width());
                 file.setCropH(crop.height());
             }
+            file.setApplied(0); // свободный — не прикреплён к лоту
 
             Long groupId = null;
             try (SqlSession session = sqlSessionFactory.openSession(true)) {
@@ -537,17 +553,21 @@ public class MediaAdminController {
                     errors.add("#" + mediaId + ": не найден");
                     continue;
                 }
-                // claim: сначала забираем строку из медиатеки
-                if (mediaMapper.deleteById(media.getId()) <= 0) {
+                if (media.isApplied()) {
+                    errors.add("#" + mediaId + ": уже прикреплён");
+                    continue;
+                }
+                // claim: помечаем applied вместо удаления строки/файла
+                if (mediaMapper.markApplied(media.getId()) <= 0) {
                     errors.add("#" + mediaId + ": уже прикреплён");
                     continue;
                 }
                 try {
                     attachVideo(lotMapper, lot, media);
-                    deleteMediaFiles(media);
                     ok++;
                 } catch (IOException | InterruptedException e) {
                     log.error("Batch video attach {} → lot {}", mediaId, lotId, e);
+                    mediaMapper.unmarkApplied(mediaId);
                     errors.add("#" + mediaId + ": " + humanImageError(e));
                 }
             }
@@ -636,7 +656,12 @@ public class MediaAdminController {
             MediaMapper mediaMapper = session.getMapper(MediaMapper.class);
             MediaFile media = mediaMapper.findById(id);
             if (media == null) {
-                // файл уже прикреплён/удалён — уходим дальше по очереди
+                // файл уже удалён — уходим дальше по очереди
+                advanceQueue(ctx, lotId, queue, "Файл уже прикреплён", null);
+                return;
+            }
+            if (media.isApplied()) {
+                // уже прикреплён — запись осталась в медиатеке, флаг applied
                 advanceQueue(ctx, lotId, queue, "Файл уже прикреплён", null);
                 return;
             }
@@ -713,6 +738,10 @@ public class MediaAdminController {
                 advanceQueue(ctx, lotId, queue, null, "Файл уже прикреплён");
                 return;
             }
+            if (media.isApplied()) {
+                advanceQueue(ctx, lotId, queue, null, "Файл уже прикреплён");
+                return;
+            }
             Lot lot = lotMapper.findById(lotId);
             if (lot == null) {
                 ctx.redirect("/admin/media/" + id + "/attach?lotId=" + lotId
@@ -721,8 +750,23 @@ public class MediaAdminController {
                 return;
             }
 
-            // claim первым — защита от двойного submit/параллельных запросов
-            if (mediaMapper.deleteById(media.getId()) <= 0) {
+            CropRect crop = null;
+            boolean noCrop = false;
+            if (!media.isVideo()) {
+                crop = readCropRect(ctx);
+                noCrop = "1".equals(formParam(ctx, "no_crop"));
+                if (crop == null && !noCrop) {
+                    // валидация до claim — файл остаётся свободным
+                    ctx.redirect("/admin/media/" + id + "/attach?lotId=" + lotId
+                            + "&error=" + urlEncode("Для фото нужен кроп с watermark или «Без кропа»")
+                            + (queue.isEmpty() ? "" : "&queue=" + urlEncode(csv(queue))));
+                    return;
+                }
+            }
+            // noCrop не нужен дальше: crop==null означает «без кропа» / медиа-кроп
+
+            // claim: applied=1 вместо удаления строки/файла
+            if (mediaMapper.markApplied(media.getId()) <= 0) {
                 advanceQueue(ctx, lotId, queue, null, "Файл уже прикреплён");
                 return;
             }
@@ -732,17 +776,6 @@ public class MediaAdminController {
                 if (media.isVideo()) {
                     attachVideo(lotMapper, lot, media);
                 } else {
-                    CropRect crop = readCropRect(ctx);
-                    boolean noCrop = "1".equals(formParam(ctx, "no_crop"));
-                    if (crop == null && !noCrop) {
-                        // вернём файл в медиатеку, чтобы не потерять
-                        mediaMapper.insert(media);
-                        claimed = false;
-                        ctx.redirect("/admin/media/" + id + "/attach?lotId=" + lotId
-                                + "&error=" + urlEncode("Для фото нужен кроп с watermark или «Без кропа»")
-                                + (queue.isEmpty() ? "" : "&queue=" + urlEncode(csv(queue))));
-                        return;
-                    }
                     if (crop == null) {
                         crop = mediaCrop(media);
                     }
@@ -750,18 +783,19 @@ public class MediaAdminController {
                     WatermarkPlacement placement = readWmPlacement(ctx, wmDefaults);
                     attachImage(session, lotMapper, lot, media, crop, placement);
                 }
-                deleteMediaFiles(media);
+                // файл и запись остаются: помечены applied
             } catch (IOException | InterruptedException e) {
                 log.error("Не удалось прикрепить медиафайл {} к лоту {}", id, lotId, e);
                 if (claimed) {
-                    // строка уже удалена — файл на диске мог сохраниться, сообщаем об ошибке
-                    advanceQueue(ctx, lotId, queue, null,
-                            "Не получилось прикрепить: " + humanImageError(e));
+                    // снимаем флаг — файл снова доступен в медиатеке
+                    mediaMapper.unmarkApplied(id);
                 }
+                advanceQueue(ctx, lotId, queue, null,
+                        "Не получилось прикрепить: " + humanImageError(e));
                 return;
             }
         }
-        advanceQueue(ctx, lotId, queue, "Прикреплено к лоту", null);
+        advanceQueue(ctx, lotId, queue, "Прикреплено к лоту (файл помечен как прикреплённый)", null);
     }
 
     private void attachImage(SqlSession session,

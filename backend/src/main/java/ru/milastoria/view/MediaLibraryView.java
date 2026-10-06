@@ -6,6 +6,7 @@ import java.util.List;
 
 /**
  * Медиатека: список файлов + режим прикрепления + настройки сжатия.
+ * applied: null/"" — только свободные (по умолчанию), "1" — прикреплённые, "all" — все.
  */
 public record MediaLibraryView(List<MediaFile> files,
                                String query,
@@ -19,12 +20,14 @@ public record MediaLibraryView(List<MediaFile> files,
                                String lotTitle,
                                String compressMaxMb,
                                String compressMinQuality,
-                               String compressMaxEdge) {
+                               String compressMaxEdge,
+                               String applied) {
 
     public MediaLibraryView {
         if (compressMaxMb == null || compressMaxMb.isBlank()) compressMaxMb = "3";
         if (compressMinQuality == null || compressMinQuality.isBlank()) compressMinQuality = "82";
         if (compressMaxEdge == null || compressMaxEdge.isBlank()) compressMaxEdge = "4000";
+        if (applied == null) applied = "";
     }
 
     public int totalPages() {
@@ -75,6 +78,14 @@ public record MediaLibraryView(List<MediaFile> files,
         return lotId != null && lotId > 0;
     }
 
+    public boolean showingAttached() {
+        return "1".equals(applied);
+    }
+
+    public boolean showingAll() {
+        return "all".equals(applied);
+    }
+
     public String kindLabel(String kindValue) {
         if (MediaFile.KIND_VIDEO.equals(kindValue)) {
             return "видео";
@@ -89,6 +100,9 @@ public record MediaLibraryView(List<MediaFile> files,
         }
         if (kind != null && !kind.isBlank()) {
             sb.append("&kind=").append(TextUtil.urlEncode(kind));
+        }
+        if (applied != null && !applied.isBlank()) {
+            sb.append("&applied=").append(TextUtil.urlEncode(applied));
         }
         if (targetingLot()) {
             sb.append("&lotId=").append(lotId);

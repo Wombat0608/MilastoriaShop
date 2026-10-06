@@ -3,7 +3,7 @@ package ru.milastoria.domain;
 /**
  * Файл медиатеки админки: фотография или видео, загруженные с телефона
  * до прикрепления к лоту. Оригинал хранится на диске; после attach
- * файл и запись удаляются физически.
+ * запись помечается флагом applied (файл остаётся на диске).
  */
 public class MediaFile {
 
@@ -33,6 +33,8 @@ public class MediaFile {
     private Long groupId;
     /** Denormalized имя из media_groups (grp-N). */
     private String groupName;
+    /** 1 = прикреплён к лоту; 0/null = свободен в медиатеке. */
+    private Integer applied;
 
     public long getId() {
         return id;
@@ -194,12 +196,24 @@ public class MediaFile {
         this.groupName = groupName;
     }
 
+    public Integer getApplied() {
+        return applied;
+    }
+
+    public void setApplied(Integer applied) {
+        this.applied = applied;
+    }
+
     public boolean isImage() {
         return KIND_IMAGE.equals(kind);
     }
 
     public boolean isVideo() {
         return KIND_VIDEO.equals(kind);
+    }
+
+    public boolean isApplied() {
+        return applied != null && applied != 0;
     }
 
     /** Дата для сортировки: EXIF, иначе дата загрузки. */

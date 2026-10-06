@@ -275,8 +275,10 @@ public class App {
             addColumnIfMissing(conn, "lot_images", "wm_width", "REAL");
             addColumnIfMissing(conn, "lot_images", "wm_opacity", "REAL");
             addColumnIfMissing(conn, "media_files", "group_id", "INTEGER");
+            addColumnIfMissing(conn, "media_files", "applied", "INTEGER NOT NULL DEFAULT 0");
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE INDEX IF NOT EXISTS idx_media_files_group ON media_files(group_id)");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_media_files_applied ON media_files(applied)");
             }
             // категории без sort заполняем по id (стабильный порядок «как было»)
             try (Statement st = conn.createStatement()) {

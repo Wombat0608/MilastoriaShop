@@ -77,6 +77,14 @@
         filterForm.submit();
       });
     });
+    var appliedRadios = filterForm.querySelectorAll('input[name="applied"]');
+    appliedRadios.forEach(function (r) {
+      r.addEventListener("change", function () {
+        var pageHidden = filterForm.querySelector('input[name="page"]');
+        if (pageHidden) pageHidden.value = "1";
+        filterForm.submit();
+      });
+    });
   }
 
   grid.addEventListener("change", function (e) {

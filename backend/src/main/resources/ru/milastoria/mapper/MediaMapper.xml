@@ -5,7 +5,7 @@
     <sql id="cols">
         f.id, f.kind, f.original_name, f.path, f.thumb_path, f.width, f.height, f.uploaded_at,
         f.exif_datetime, f.exif_make, f.exif_model, f.exif_orientation, f.exif_json, f.exif_search,
-        f.crop_x, f.crop_y, f.crop_w, f.crop_h, f.group_id, g.name AS group_name
+        f.crop_x, f.crop_y, f.crop_w, f.crop_h, f.group_id, g.name AS group_name, f.applied
     </sql>
 
     <sql id="whereSearch">
@@ -24,6 +24,22 @@
         </if>
     </sql>
 
+    <!-- Прикреплённые по умолчанию скрыты; applied=all — без фильтра.
+         OGNL MyBatis: == с числами работает, а == 'all' пытается Double.parseDouble
+         → всегда через .toString().equals() / String.valueOf -->
+    <sql id="whereApplied">
+        <choose>
+            <when test="applied != null and String.valueOf(applied).equals('1')">
+                AND COALESCE(f.applied, 0) = 1
+            </when>
+            <when test="applied != null and String.valueOf(applied).equals('all')">
+            </when>
+            <otherwise>
+                AND COALESCE(f.applied, 0) = 0
+            </otherwise>
+        </choose>
+    </sql>
+
     <!-- Сортировка: сначала группа (новые пачки сверху), внутри — EXIF/загрузка DESC -->
     <select id="findPage" resultType="ru.milastoria.domain.MediaFile">
         SELECT <include refid="cols"/>
@@ -31,6 +47,7 @@
         LEFT JOIN media_groups g ON g.id = f.group_id
         WHERE 1=1
         <include refid="whereSearch"/>
+        <include refid="whereApplied"/>
         ORDER BY COALESCE(f.group_id, 0) DESC,
                  COALESCE(f.exif_datetime, f.uploaded_at) DESC,
                  f.id DESC
@@ -43,17 +60,19 @@
         LEFT JOIN media_groups g ON g.id = f.group_id
         WHERE 1=1
         <include refid="whereSearch"/>
+        <include refid="whereApplied"/>
     </select>
 
     <select id="findById" resultType="ru.milastoria.domain.MediaFile">
         SELECT f.id, f.kind, f.original_name, f.path, f.thumb_path, f.width, f.height, f.uploaded_at,
                f.exif_datetime, f.exif_make, f.exif_model, f.exif_orientation, f.exif_json, f.exif_search,
-               f.crop_x, f.crop_y, f.crop_w, f.crop_h, f.group_id, g.name AS group_name
+               f.crop_x, f.crop_y, f.crop_w, f.crop_h, f.group_id, g.name AS group_name, f.applied
         FROM media_files f
         LEFT JOIN media_groups g ON g.id = f.group_id
         WHERE f.id = #{id}
     </select>
 
+    <!-- applied не указываем: DEFAULT 0 (свободный файл) -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.MediaFile">
         INSERT INTO media_files (
             kind, original_name, path, thumb_path, width, height, uploaded_at,
@@ -65,6 +84,18 @@
             #{cropX}, #{cropY}, #{cropW}, #{cropH}, #{groupId}
         )
     </insert>
+
+    <update id="markApplied">
+        UPDATE media_files
+        SET applied = 1
+        WHERE id = #{id} AND COALESCE(applied, 0) = 0
+    </update>
+
+    <update id="unmarkApplied">
+        UPDATE media_files
+        SET applied = 0
+        WHERE id = #{id}
+    </update>
 
     <delete id="deleteById">
         DELETE FROM media_files WHERE id = #{id}

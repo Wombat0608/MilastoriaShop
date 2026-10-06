@@ -114,6 +114,32 @@
                     <span>Видео</span>
                 </label>
             </div>
+            <div class="admin-cat-filter" style="margin-top:0.35rem" aria-label="Прикрепление">
+                <label class="admin-cat-check">
+                    @if(!view.showingAttached() && !view.showingAll())
+                        <input type="radio" name="applied" value="0" checked onchange="this.form.submit()">
+                    @else
+                        <input type="radio" name="applied" value="0" onchange="this.form.submit()">
+                    @endif
+                    <span>Не прикреплённые</span>
+                </label>
+                <label class="admin-cat-check">
+                    @if(view.showingAttached())
+                        <input type="radio" name="applied" value="1" checked onchange="this.form.submit()">
+                    @else
+                        <input type="radio" name="applied" value="1" onchange="this.form.submit()">
+                    @endif
+                    <span>Прикреплённые</span>
+                </label>
+                <label class="admin-cat-check">
+                    @if(view.showingAll())
+                        <input type="radio" name="applied" value="all" checked onchange="this.form.submit()">
+                    @else
+                        <input type="radio" name="applied" value="all" onchange="this.form.submit()">
+                    @endif
+                    <span>Все</span>
+                </label>
+            </div>
         </form>
 
         <div class="media-bulk-bar" id="media-bulk-bar">
@@ -130,7 +156,7 @@
                           data-loading-message="Прикрепляю файлы к лоту…">
                         <input type="hidden" name="lot_id" value="${view.lotId()}">
                         <button type="submit" class="btn btn--fill" id="media-batch-submit" disabled
-                                data-confirm="Прикрепить выбранные файлы к лоту? Файлы уйдут из медиатеки в папку лота.">
+                                data-confirm="Прикрепить выбранные файлы к лоту? Файлы останутся в медиатеке, но будут помечены как прикреплённые.">
                             Прикрепить
                         </button>
                     </form>
@@ -191,13 +217,20 @@
                                 @if(f.getGroupName() != null && !f.getGroupName().isBlank())
                                     <span>Группа: <strong>${f.getGroupName()}</strong></span>
                                 @endif
+                                @if(f.isApplied())
+                                    <span class="admin-notice" style="margin:0">Прикреплён</span>
+                                @endif
                                 @if(f.getExifMake() != null || f.getExifModel() != null)
                                     <span>${f.getExifMake() != null ? f.getExifMake() : ""} ${f.getExifModel() != null ? f.getExifModel() : ""}</span>
                                 @endif
                                 <span>${view.kindLabel(f.getKind())}</span>
                             </div>
                             <div class="media-card__actions">
-                                <a class="btn btn--line media-card__btn" href="${view.attachHref(f.getId())}">Прикрепить</a>
+                                @if(!f.isApplied())
+                                    <a class="btn btn--line media-card__btn" href="${view.attachHref(f.getId())}">Прикрепить</a>
+                                @else
+                                    <span class="btn btn--line media-card__btn" style="opacity:.6" title="Уже прикреплён к лоту">Прикреплён</span>
+                                @endif
                                 <a class="btn btn--line media-card__btn" href="/admin/media/${f.getId()}/download"
                                    download title="Скачать исходник">Загрузить</a>
                                 <form method="post" action="/admin/media/${f.getId()}/delete"

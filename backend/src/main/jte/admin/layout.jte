@@ -21,7 +21,13 @@
             <a class="logo" href="/admin">
                 <img src="/assets/logo.svg" alt="Milastoria" width="120" height="20">
             </a>
-            <nav class="admin-nav" aria-label="Админка">
+            <button type="button" class="admin-nav-toggle" id="admin-nav-toggle"
+                    aria-expanded="false" aria-controls="admin-nav" aria-label="Меню">
+                <span class="admin-nav-toggle__box" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                </span>
+            </button>
+            <nav class="admin-nav" id="admin-nav" aria-label="Админка">
                 <a href="/admin">Лоты</a>
                 <a href="/admin/media">Медиатека</a>
                 <a href="/admin/categories">Разделы</a>
@@ -39,6 +45,7 @@
         ${content}
     </main>
     <script src="/js/admin-loading.js"></script>
+    <script src="/js/admin-nav.js"></script>
     <script src="/js/admin-dict.js"></script>
     <!-- admin.js последним: submit-хуки должны видеть preventDefault от page-скриптов -->
     <script src="/js/admin.js"></script>

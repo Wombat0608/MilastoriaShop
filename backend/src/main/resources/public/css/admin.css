@@ -80,6 +80,7 @@ form.is-submitting .btn--fill {
 }
 
 .admin-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -101,6 +102,38 @@ form.is-submitting .btn--fill {
   width: auto;
 }
 
+/* гамбургер — только на узких экранах (см. media внизу) */
+.admin-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.admin-nav-toggle__box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 18px;
+  height: 14px;
+}
+
+.admin-nav-toggle__box span {
+  display: block;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
 .admin-nav {
   display: flex;
   gap: 1rem;
@@ -117,6 +150,64 @@ form.is-submitting .btn--fill {
 .admin-nav a:hover {
   color: var(--ink);
   border-color: var(--gold);
+}
+
+@media (max-width: 900px) {
+  .admin-header {
+    padding: 0.65rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .admin-header__left {
+    gap: 0.65rem;
+    flex: 1;
+  }
+
+  .admin-nav-toggle {
+    display: inline-flex;
+  }
+
+  .admin-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.25rem 0;
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 10px 28px rgba(24, 18, 12, 0.12);
+  }
+
+  .admin-nav.is-open {
+    display: flex;
+  }
+
+  .admin-nav a {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0.7rem 1.15rem;
+    border-bottom: 1px solid var(--line-soft);
+    border-radius: 0;
+    font-size: 1rem;
+  }
+
+  .admin-nav a:last-child {
+    border-bottom: none;
+  }
+
+  .admin-nav a:hover {
+    border-color: var(--line-soft);
+    background: var(--paper);
+  }
+
+  .admin-main {
+    padding: 1.15rem 0.85rem 3.5rem;
+  }
 }
 
 .admin-main {

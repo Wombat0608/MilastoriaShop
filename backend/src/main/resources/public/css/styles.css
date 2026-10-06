@@ -1828,6 +1828,27 @@ p {
   }
   .site-header .logo img { height: 15px; }
 
+  /* стрелки hero: левая не наезжает на eyebrow «Ателье с 2016 года»
+     — весь текст hero сдвигаем вправо padding-left */
+  .hero {
+    min-height: 70svh;
+  }
+  .hero-nav {
+    padding: 0.45rem 0.55rem 0;
+  }
+  .hero-nav__btn {
+    width: 44px;
+    height: 44px;
+  }
+  .hero-nav__icon {
+    width: 20px;
+    height: 20px;
+  }
+  .hero__content {
+    /* левый запас под круг стрелки + отступ контейнера */
+    padding: 1.1rem 1rem 1.25rem 4.25rem;
+  }
+
   .work-layout {
     grid-template-columns: 1fr;
     gap: 0.85rem;

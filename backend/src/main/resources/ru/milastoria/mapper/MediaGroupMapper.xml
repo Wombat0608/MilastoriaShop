@@ -8,9 +8,11 @@
         WHERE id = #{id}
     </select>
 
-    <insert id="insertTemporary" useGeneratedKeys="true" keyProperty="id">
+    <!-- keyProperty="id" — только на объекте MediaGroup (см. MediaGroupMapper.java) -->
+    <insert id="insertTemporary" useGeneratedKeys="true" keyProperty="id" keyColumn="id"
+            parameterType="ru.milastoria.domain.MediaGroup">
         INSERT INTO media_groups (name, created_at)
-        VALUES (#{tempName}, #{createdAt})
+        VALUES (#{name}, #{createdAt})
     </insert>
 
     <update id="updateName">

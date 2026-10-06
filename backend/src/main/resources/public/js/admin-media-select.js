@@ -59,31 +59,16 @@
     }
   }
 
-  // фильтр Все / Фото / Видео — submit формы поиска
+  // фильтр kind + applied — только submit из JS (в jte у applied нет onchange,
+  // чтобы не было двойного submit и «залипшего» URL без applied)
   if (filterForm) {
-    filterForm.addEventListener("submit", function (e) {
-      // сброс страницы при смене фильтра
-      var pageInput = filterForm.querySelector('input[name="page"]');
-      if (!pageInput) {
-        // page не передаём — сервер откроет стр. 1
-      }
-    });
-    var radios = filterForm.querySelectorAll('input[name="kind"]');
-    radios.forEach(function (r) {
-      r.addEventListener("change", function () {
-        // сброс page=1 при смене kind
-        var pageHidden = filterForm.querySelector('input[name="page"]');
-        if (pageHidden) pageHidden.value = "1";
-        filterForm.submit();
-      });
-    });
-    var appliedRadios = filterForm.querySelectorAll('input[name="applied"]');
-    appliedRadios.forEach(function (r) {
-      r.addEventListener("change", function () {
-        var pageHidden = filterForm.querySelector('input[name="page"]');
-        if (pageHidden) pageHidden.value = "1";
-        filterForm.submit();
-      });
+    function submitFilter() {
+      var pageHidden = filterForm.querySelector('input[name="page"]');
+      if (pageHidden) pageHidden.value = "1";
+      filterForm.submit();
+    }
+    filterForm.querySelectorAll('input[name="kind"], input[name="applied"]').forEach(function (r) {
+      r.addEventListener("change", submitFilter);
     });
   }
 

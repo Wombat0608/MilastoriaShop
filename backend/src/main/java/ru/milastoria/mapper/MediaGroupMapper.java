@@ -7,9 +7,12 @@ public interface MediaGroupMapper {
 
     MediaGroup findById(@Param("id") long id);
 
-    /** Создаёт группу с временным именем, возвращает id. */
-    int insertTemporary(@Param("tempName") String tempName,
-                        @Param("createdAt") String createdAt);
+    /**
+     * Вставляет группу и возвращает id через useGeneratedKeys.
+     * Объект обязателен: keyProperty="id" не работает с @Param-примитивами
+     * (BindingException / ExecutorException «Could not determine which parameter»).
+     */
+    int insertTemporary(MediaGroup group);
 
     void updateName(@Param("id") long id, @Param("name") String name);
 }

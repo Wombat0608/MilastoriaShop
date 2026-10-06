@@ -24,20 +24,12 @@
         </if>
     </sql>
 
-    <!-- Прикреплённые по умолчанию скрыты; applied=all — без фильтра.
-         OGNL MyBatis: == с числами работает, а == 'all' пытается Double.parseDouble
-         → всегда через .toString().equals() / String.valueOf -->
+    <!-- applied: null — все (без фильтра); 0 — свободные; 1 — прикреплённые.
+         Только Integer + #{applied} / != null — OGNL со строками в MyBatis ненадёжен. -->
     <sql id="whereApplied">
-        <choose>
-            <when test="applied != null and String.valueOf(applied).equals('1')">
-                AND COALESCE(f.applied, 0) = 1
-            </when>
-            <when test="applied != null and String.valueOf(applied).equals('all')">
-            </when>
-            <otherwise>
-                AND COALESCE(f.applied, 0) = 0
-            </otherwise>
-        </choose>
+        <if test="applied != null">
+            AND COALESCE(f.applied, 0) = #{applied}
+        </if>
     </sql>
 
     <!-- Сортировка: сначала группа (новые пачки сверху), внутри — EXIF/загрузка DESC -->

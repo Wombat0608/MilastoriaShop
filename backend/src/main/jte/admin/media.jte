@@ -115,27 +115,28 @@
                 </label>
             </div>
             <div class="admin-cat-filter" style="margin-top:0.35rem" aria-label="Прикрепление">
+                <!-- onchange submit только здесь; JS admin-media-select.js дублирует и мог гасить фильтр -->
                 <label class="admin-cat-check">
                     @if(!view.showingAttached() && !view.showingAll())
-                        <input type="radio" name="applied" value="0" checked onchange="this.form.submit()">
+                        <input type="radio" name="applied" value="0" checked>
                     @else
-                        <input type="radio" name="applied" value="0" onchange="this.form.submit()">
+                        <input type="radio" name="applied" value="0">
                     @endif
                     <span>Не прикреплённые</span>
                 </label>
                 <label class="admin-cat-check">
                     @if(view.showingAttached())
-                        <input type="radio" name="applied" value="1" checked onchange="this.form.submit()">
+                        <input type="radio" name="applied" value="1" checked>
                     @else
-                        <input type="radio" name="applied" value="1" onchange="this.form.submit()">
+                        <input type="radio" name="applied" value="1">
                     @endif
                     <span>Прикреплённые</span>
                 </label>
                 <label class="admin-cat-check">
                     @if(view.showingAll())
-                        <input type="radio" name="applied" value="all" checked onchange="this.form.submit()">
+                        <input type="radio" name="applied" value="all" checked>
                     @else
-                        <input type="radio" name="applied" value="all" onchange="this.form.submit()">
+                        <input type="radio" name="applied" value="all">
                     @endif
                     <span>Все</span>
                 </label>

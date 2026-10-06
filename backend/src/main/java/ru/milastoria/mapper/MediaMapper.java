@@ -10,16 +10,18 @@ public interface MediaMapper {
     /**
      * Страница списка. Сортировка: группа (новые пачки вверху),
      * внутри — EXIF/загрузка DESC.
-     * applied: "0"/null — свободные (по умолчанию), "1" — прикреплённые, "all" — все.
+     * applied: null — все, 0 — свободные, 1 — прикреплённые.
+     * Integer, чтобы в XML было только {@code #{applied}} / {@code != null}
+     * (строковый OGNL == 'all'/'1' в MyBatis ненадёжен).
      */
     List<MediaFile> findPage(@Param("kind") String kind,
                              @Param("q") String q,
-                             @Param("applied") String applied,
+                             @Param("applied") Integer applied,
                              @Param("limit") int limit,
                              @Param("offset") int offset);
 
     int countPage(@Param("kind") String kind, @Param("q") String q,
-                  @Param("applied") String applied);
+                  @Param("applied") Integer applied);
 
     MediaFile findById(@Param("id") long id);
 

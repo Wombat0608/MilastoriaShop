@@ -94,13 +94,22 @@ public class MediaAdminController {
 
         try (SqlSession session = sqlSessionFactory.openSession()) {
             MediaMapper mapper = session.getMapper(MediaMapper.class);
-            int total = mapper.countPage(kind, qLike, applied);
+            // UI "0"/"1"/"all" → SQL Integer: null=все, 0=свободные, 1=прикреплённые
+            Integer appliedSql;
+            if ("all".equals(applied) || "both".equals(applied)) {
+                appliedSql = null;
+            } else if ("1".equals(applied)) {
+                appliedSql = 1;
+            } else {
+                appliedSql = 0;
+            }
+            int total = mapper.countPage(kind, qLike, appliedSql);
             int totalPages = Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
             if (page > totalPages) {
                 page = totalPages;
             }
             int offset = (page - 1) * PAGE_SIZE;
-            List<MediaFile> files = mapper.findPage(kind, qLike, applied, PAGE_SIZE, offset);
+            List<MediaFile> files = mapper.findPage(kind, qLike, appliedSql, PAGE_SIZE, offset);
             if (lotId != null) {
                 Lot lot = session.getMapper(LotMapper.class).findById(lotId);
                 if (lot == null) {
@@ -332,6 +341,12 @@ public class MediaAdminController {
                     MediaGroup g = session.getMapper(MediaGroupMapper.class).findById(groupId);
                     file.setGroupName(g != null ? g.getName() : null);
                 }
+            } catch (RuntimeException e) {
+                // PersistenceException и др. — иначе 500 без ответа JSON, счётчик «не растёт»
+                log.error("Ошибка сохранения медиафайла в БД {}", originalName, e);
+                ctx.status(500).json(Map.of("ok", false,
+                        "error", "Не удалось сохранить файл в медиатеку: " + e.getMessage()));
+                return;
             }
 
             Map<String, Object> body = new LinkedHashMap<>();
@@ -354,7 +369,10 @@ public class MediaAdminController {
 
     // ─────────────── удаление из медиатеки ───────────────
 
-    /** Группа пачки: group_id из формы, либо создаём grp-${id} по batch_id. */
+    /**
+     * Группа пачки: group_id из формы, либо создаём grp-${id}.
+     * Ошибка группы не должна ронять upload — вернём null.
+     */
     private Long resolveBatchGroup(SqlSession session, Context ctx) {
         Long existing = parseLongOrNull(ctx.formParam("group_id"));
         if (existing != null) {
@@ -364,16 +382,23 @@ public class MediaAdminController {
             }
         }
         String batchId = normalize(ctx.formParam("batch_id"));
-        // один batch_id → одна группа: ищем по имени, если нет — создаём
         MediaGroupMapper groups = session.getMapper(MediaGroupMapper.class);
-        if (batchId != null) {
-            // временно ищем по имени batch, затем переименуем в grp-N
-            // проще: создаём сразу, имя сразу grp-${id} (user request)
+        try {
+            MediaGroup created = new MediaGroup();
+            created.setName("tmp-" + (batchId != null ? batchId : UUID.randomUUID()));
+            created.setCreatedAt(Instant.now().toString());
+            // insertTemporary возвращает rows (1), id — в объекте через keyProperty
+            groups.insertTemporary(created);
+            int id = (int) created.getId();
+            if (id <= 0) {
+                return null;
+            }
+            groups.updateName(id, "grp-" + id);
+            return (long) id;
+        } catch (Exception e) {
+            log.warn("Не удалось создать группу медиа (файл сохранится без группы): {}", e.getMessage());
+            return null;
         }
-        int id = groups.insertTemporary("tmp-" + (batchId != null ? batchId : UUID.randomUUID()),
-                Instant.now().toString());
-        groups.updateName(id, "grp-" + id);
-        return (long) id;
     }
 
     /** Скачивание исходника из медиатеки локально. */

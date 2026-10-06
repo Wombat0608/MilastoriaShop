@@ -185,6 +185,7 @@ public class App {
         app.get("/admin/media/lots/{lotId}/pick", mediaAdmin::pickLot);
         app.post("/admin/media/lots/{lotId}/attach-selected", mediaAdmin::attachBatch);
         app.post("/admin/media/attach-batch", mediaAdmin::attachBatch);
+        app.post("/admin/media/delete-batch", mediaAdmin::deleteBatch);
         app.post("/admin/media/compress-settings", mediaAdmin::saveCompressSettings);
         app.post("/admin/media/upload", mediaAdmin::upload);
         app.get("/admin/media/{id}/download", mediaAdmin::download);

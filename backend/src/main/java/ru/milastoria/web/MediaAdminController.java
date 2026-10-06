@@ -449,6 +449,29 @@ public class MediaAdminController {
         }
     }
 
+    /** POST /admin/media/delete-batch — hard-delete выбранных checkbox'ами. */
+    public void deleteBatch(Context ctx) {
+        List<Long> mediaIds = collectMediaIds(ctx);
+        String back = normalize(ctx.formParam("back"));
+        String qs = (back != null && back.startsWith("/admin/media")) ? back : "/admin/media";
+        if (mediaIds.isEmpty()) {
+            ctx.redirect(qs + "?error=" + urlEncode("Отметьте хотя бы один файл"));
+            return;
+        }
+        int deleted = 0;
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            MediaMapper mapper = session.getMapper(MediaMapper.class);
+            for (Long id : mediaIds) {
+                MediaFile file = mapper.findById(id);
+                if (file == null) continue;
+                deleteMediaFiles(file);
+                if (mapper.deleteById(id) > 0) deleted++;
+            }
+        }
+        String sep = qs.contains("?") ? "&" : "?";
+        ctx.redirect(qs + sep + "notice=" + urlEncode("Удалено файлов: " + deleted));
+    }
+
     // ─────────────── attach к лоту ───────────────
 
     /**

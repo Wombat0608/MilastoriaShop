@@ -170,6 +170,14 @@
                     </form>
                 @endif
                 <button type="button" class="btn btn--line" id="media-select-none">Снять выбор</button>
+                <form method="post" action="/admin/media/delete-batch" id="media-delete-form"
+                      data-loading-message="Удаляю выбранные файлы…">
+                    <input type="hidden" name="back" value="/admin/media?${view.backQuery()}">
+                    <button type="submit" class="btn btn--line" id="media-delete-submit" disabled
+                            data-confirm="Удалить выбранные файлы из медиатеки? Файлы будут стёрты с диска.">
+                        Удалить выбранные
+                    </button>
+                </form>
             </div>
         </div>
 

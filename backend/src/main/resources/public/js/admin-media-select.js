@@ -12,6 +12,8 @@
   var batchForm = document.getElementById("media-batch-form");
   var batchIdsField = document.getElementById("media-batch-ids");
   var batchSubmit = document.getElementById("media-batch-submit");
+  var deleteForm = document.getElementById("media-delete-form");
+  var deleteSubmit = document.getElementById("media-delete-submit");
 
   // Фильтры — ДО early return: пустая «Прикреплённые» без grid не должна ловить радиокнопки
   if (filterForm) {
@@ -25,9 +27,9 @@
     });
   }
 
-  if (!grid || !bar || !batchForm) return;
+  if (!grid || !bar) return;
 
-  var isPost = (batchForm.method || "get").toLowerCase() === "post";
+  var isPost = batchForm && (batchForm.method || "get").toLowerCase() === "post";
 
   function checks() {
     return Array.prototype.slice.call(grid.querySelectorAll(".media-check"));
@@ -37,6 +39,20 @@
     return checks()
       .filter(function (c) { return c.checked; })
       .map(function (c) { return c.value; });
+  }
+
+  function fillDeleteIds(ids) {
+    if (!deleteForm) return;
+    Array.prototype.slice.call(deleteForm.querySelectorAll("input[data-del-id]"))
+      .forEach(function (el) { el.remove(); });
+    ids.forEach(function (id) {
+      var input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "media_ids";
+      input.value = id;
+      input.setAttribute("data-del-id", "1");
+      deleteForm.appendChild(input);
+    });
   }
 
   function sync() {
@@ -55,21 +71,27 @@
       batchSubmit.disabled = n === 0;
       batchSubmit.textContent = "Прикрепить";
     }
-    Array.prototype.slice.call(batchForm.querySelectorAll("input[data-batch-id]"))
-      .forEach(function (el) { el.remove(); });
-    if (!isPost && batchIdsField) {
-      batchIdsField.value = ids.join(",");
+    if (deleteSubmit) {
+      deleteSubmit.disabled = n === 0;
     }
-    if (isPost) {
-      ids.forEach(function (id) {
-        var input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "media_ids";
-        input.value = id;
-        input.setAttribute("data-batch-id", "1");
-        batchForm.appendChild(input);
-      });
+    if (batchForm) {
+      Array.prototype.slice.call(batchForm.querySelectorAll("input[data-batch-id]"))
+        .forEach(function (el) { el.remove(); });
+      if (!isPost && batchIdsField) {
+        batchIdsField.value = ids.join(",");
+      }
+      if (isPost) {
+        ids.forEach(function (id) {
+          var input = document.createElement("input");
+          input.type = "hidden";
+          input.name = "media_ids";
+          input.value = id;
+          input.setAttribute("data-batch-id", "1");
+          batchForm.appendChild(input);
+        });
+      }
     }
+    fillDeleteIds(ids);
   }
 
   grid.addEventListener("change", function (e) {
@@ -92,14 +114,26 @@
     });
   }
 
-  batchForm.addEventListener("submit", function (e) {
-    sync();
-    var ids = selectedIds();
-    if (!ids.length) {
-      e.preventDefault();
-      return;
-    }
-  });
+  if (batchForm) {
+    batchForm.addEventListener("submit", function (e) {
+      sync();
+      var ids = selectedIds();
+      if (!ids.length) {
+        e.preventDefault();
+        return;
+      }
+    });
+  }
+
+  if (deleteForm) {
+    deleteForm.addEventListener("submit", function (e) {
+      sync();
+      if (!selectedIds().length) {
+        e.preventDefault();
+        return;
+      }
+    });
+  }
 
   grid.addEventListener("click", function (e) {
     if (e.target.closest("a, button, label, input, form")) return;

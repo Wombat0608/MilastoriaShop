@@ -1403,31 +1403,39 @@ form.is-submitting .btn--fill {
   gap: 0.45rem;
   margin-top: 0.25rem;
   align-items: stretch;
+  width: 100%;
 }
 
-.media-card__actions .btn,
-.media-card__actions form,
-.media-card__actions form .btn,
-.media-card__btn {
-  flex: none;
+/* обе кнопки — ровно по ширине карточки, друг над другом */
+.media-card__actions > a.btn,
+.media-card__actions > form,
+.media-card__actions > form > .btn,
+.media-card__actions .media-card__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: 100%;
+  max-width: none;
   min-width: 0;
-  min-height: 40px;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.85rem;
-  text-align: center;
   box-sizing: border-box;
-}
-
-.media-card__actions form {
+  flex: 0 0 auto;
   margin: 0;
-  width: 100%;
-  max-width: 100%;
 }
 
-.media-card__actions form .btn {
-  width: 100%;
+.media-card__actions > a.btn,
+.media-card__actions > form > .btn,
+.media-card__actions .media-card__btn {
+  min-height: 40px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+.media-card__actions > form {
+  display: block;
+  border: 0;
+  padding: 0;
+  background: none;
 }
 
 .media-pagination {
@@ -1671,15 +1679,11 @@ form.is-submitting .btn--fill {
     grid-template-columns: 1fr;
   }
 
-  .media-card__actions {
-    flex-direction: column;
-  }
-
-  .media-card__actions .btn,
-  .media-card__actions form,
-  .media-card__actions form button,
-  .media-card__btn {
+  .media-card__actions > a.btn,
+  .media-card__actions > form,
+  .media-card__actions > form > .btn,
+  .media-card__actions .media-card__btn {
     width: 100%;
-    max-width: 100%;
+    max-width: none;
   }
 }

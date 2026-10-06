@@ -12,10 +12,12 @@ import ru.milastoria.domain.Lot;
 import ru.milastoria.domain.LotImage;
 import ru.milastoria.domain.LotVideo;
 import ru.milastoria.domain.MediaFile;
+import ru.milastoria.domain.MediaGroup;
 import ru.milastoria.image.CropRect;
 import ru.milastoria.image.ImageProcessor;
 import ru.milastoria.image.WatermarkPlacement;
 import ru.milastoria.mapper.LotMapper;
+import ru.milastoria.mapper.MediaGroupMapper;
 import ru.milastoria.mapper.MediaMapper;
 import ru.milastoria.mapper.SettingsMapper;
 import ru.milastoria.media.ExifData;
@@ -304,9 +306,16 @@ public class MediaAdminController {
                 file.setCropH(crop.height());
             }
 
+            Long groupId = null;
             try (SqlSession session = sqlSessionFactory.openSession(true)) {
                 MediaMapper mapper = session.getMapper(MediaMapper.class);
+                groupId = resolveBatchGroup(session, ctx);
+                file.setGroupId(groupId);
                 mapper.insert(file);
+                if (groupId != null) {
+                    MediaGroup g = session.getMapper(MediaGroupMapper.class).findById(groupId);
+                    file.setGroupName(g != null ? g.getName() : null);
+                }
             }
 
             Map<String, Object> body = new LinkedHashMap<>();
@@ -318,6 +327,8 @@ public class MediaAdminController {
             body.put("sizeBefore", sizeBefore);
             body.put("sizeAfter", Files.size(original));
             body.put("compressed", compressed);
+            body.put("groupId", groupId);
+            body.put("groupName", file.getGroupName());
             ctx.json(body);
         } catch (IOException e) {
             log.error("Ошибка загрузки медиафайла {}", originalName, e);
@@ -326,6 +337,58 @@ public class MediaAdminController {
     }
 
     // ─────────────── удаление из медиатеки ───────────────
+
+    /** Группа пачки: group_id из формы, либо создаём grp-${id} по batch_id. */
+    private Long resolveBatchGroup(SqlSession session, Context ctx) {
+        Long existing = parseLongOrNull(ctx.formParam("group_id"));
+        if (existing != null) {
+            MediaGroup g = session.getMapper(MediaGroupMapper.class).findById(existing);
+            if (g != null) {
+                return g.getId();
+            }
+        }
+        String batchId = normalize(ctx.formParam("batch_id"));
+        // один batch_id → одна группа: ищем по имени, если нет — создаём
+        MediaGroupMapper groups = session.getMapper(MediaGroupMapper.class);
+        if (batchId != null) {
+            // временно ищем по имени batch, затем переименуем в grp-N
+            // проще: создаём сразу, имя сразу grp-${id} (user request)
+        }
+        int id = groups.insertTemporary("tmp-" + (batchId != null ? batchId : UUID.randomUUID()),
+                Instant.now().toString());
+        groups.updateName(id, "grp-" + id);
+        return (long) id;
+    }
+
+    /** Скачивание исходника из медиатеки локально. */
+    public void download(Context ctx) {
+        long id = Long.parseLong(ctx.pathParam("id"));
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            MediaFile file = session.getMapper(MediaMapper.class).findById(id);
+            if (file == null) {
+                ctx.status(404).result("Медиафайл не найден");
+                return;
+            }
+            Path src = resolveContentPath(file.getPath());
+            if (!Files.isRegularFile(src)) {
+                ctx.status(404).result("Файл на диске отсутствует");
+                return;
+            }
+            String name = file.getOriginalName();
+            if (name == null || name.isBlank()) {
+                name = src.getFileName().toString();
+            }
+            // санитайзим имя для Content-Disposition
+            name = name.replaceAll("[\\r\\n\"\\\\]", "_");
+            ctx.header("Content-Disposition", "attachment; filename*=UTF-8''"
+                    + URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20"));
+            ctx.contentType("application/octet-stream");
+            ctx.result(Files.readAllBytes(src));
+        } catch (IOException e) {
+            log.error("Ошибка скачивания медиа {}", id, e);
+            ctx.status(500).result("Не удалось скачать файл");
+        }
+    }
 
     public void delete(Context ctx) {
         long id = Long.parseLong(ctx.pathParam("id"));

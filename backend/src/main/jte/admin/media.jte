@@ -188,6 +188,9 @@
                             <div class="media-card__meta">
                                 <span>Съёмка: <strong>${f.getExifDatetime() != null ? f.getExifDatetime() : "—"}</strong></span>
                                 <span>Загружено: ${f.getUploadedAt()}</span>
+                                @if(f.getGroupName() != null && !f.getGroupName().isBlank())
+                                    <span>Группа: <strong>${f.getGroupName()}</strong></span>
+                                @endif
                                 @if(f.getExifMake() != null || f.getExifModel() != null)
                                     <span>${f.getExifMake() != null ? f.getExifMake() : ""} ${f.getExifModel() != null ? f.getExifModel() : ""}</span>
                                 @endif
@@ -195,6 +198,8 @@
                             </div>
                             <div class="media-card__actions">
                                 <a class="btn btn--line media-card__btn" href="${view.attachHref(f.getId())}">Прикрепить</a>
+                                <a class="btn btn--line media-card__btn" href="/admin/media/${f.getId()}/download"
+                                   download title="Скачать исходник">Загрузить</a>
                                 <form method="post" action="/admin/media/${f.getId()}/delete"
                                       data-confirm="Удалить файл из медиатеки?">
                                     <input type="hidden" name="back" value="/admin/media?${view.pageQuery(view.page())}">
@@ -207,18 +212,26 @@
             </div>
 
             <nav class="media-pagination" aria-label="Страницы медиатеки">
+                @if(view.hasFirst())
+                    <a class="btn btn--line" href="/admin/media?${view.pageQuery(view.firstPage())}">В начало</a>
+                @else
+                    <span class="media-pagination__disabled">В начало</span>
+                @endif
                 @if(view.hasPrev())
-                    <a class="btn btn--line"
-                       href="/admin/media?${view.pageQuery(view.prevPage())}">← Назад</a>
+                    <a class="btn btn--line" href="/admin/media?${view.pageQuery(view.prevPage())}">← Назад</a>
                 @else
                     <span class="media-pagination__disabled">← Назад</span>
                 @endif
                 <span class="media-pagination__page">${view.page()} / ${view.totalPages()}</span>
                 @if(view.hasNext())
-                    <a class="btn btn--line"
-                       href="/admin/media?${view.pageQuery(view.nextPage())}">Вперёд →</a>
+                    <a class="btn btn--line" href="/admin/media?${view.pageQuery(view.nextPage())}">Вперёд →</a>
                 @else
                     <span class="media-pagination__disabled">Вперёд →</span>
+                @endif
+                @if(view.hasLast())
+                    <a class="btn btn--line" href="/admin/media?${view.pageQuery(view.lastPage())}">В конец</a>
+                @else
+                    <span class="media-pagination__disabled">В конец</span>
                 @endif
             </nav>
         @endif

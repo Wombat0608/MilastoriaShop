@@ -187,6 +187,7 @@ public class App {
         app.post("/admin/media/attach-batch", mediaAdmin::attachBatch);
         app.post("/admin/media/compress-settings", mediaAdmin::saveCompressSettings);
         app.post("/admin/media/upload", mediaAdmin::upload);
+        app.get("/admin/media/{id}/download", mediaAdmin::download);
         app.post("/admin/media/{id}/delete", mediaAdmin::delete);
         app.get("/admin/media/{id}/attach", mediaAdmin::attachForm);
         app.post("/admin/media/{id}/attach", mediaAdmin::attachSubmit);
@@ -273,6 +274,10 @@ public class App {
             addColumnIfMissing(conn, "lot_images", "wm_y", "REAL");
             addColumnIfMissing(conn, "lot_images", "wm_width", "REAL");
             addColumnIfMissing(conn, "lot_images", "wm_opacity", "REAL");
+            addColumnIfMissing(conn, "media_files", "group_id", "INTEGER");
+            try (Statement st = conn.createStatement()) {
+                st.execute("CREATE INDEX IF NOT EXISTS idx_media_files_group ON media_files(group_id)");
+            }
             // категории без sort заполняем по id (стабильный порядок «как было»)
             try (Statement st = conn.createStatement()) {
                 st.execute("UPDATE categories SET sort = id WHERE sort = 0 OR sort IS NULL");
@@ -399,6 +404,7 @@ public class App {
         configuration.addMapper(SloganMapper.class);
         configuration.addMapper(AnalyticsMapper.class);
         configuration.addMapper(ru.milastoria.mapper.HeroSlideMapper.class);
+        configuration.addMapper(ru.milastoria.mapper.MediaGroupMapper.class);
         return new SqlSessionFactoryBuilder().build(configuration);
     }
 }

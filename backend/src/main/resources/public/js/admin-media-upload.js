@@ -20,6 +20,8 @@
   var cropFailed = false;
   var loadingToken = null;
   var uploading = false;
+  var batchId = null;
+  var groupId = null;
 
   function api() {
     return window.AdminLoading;
@@ -73,6 +75,8 @@
   function uploadOne(file, crop) {
     var form = new FormData();
     form.append("file", file, file.name);
+    form.append("batch_id", batchId || "");
+    if (groupId) form.append("group_id", String(groupId));
     if (crop && crop.width > 0 && crop.height > 0) {
       form.append("x", String(Math.max(0, Math.round(crop.x))));
       form.append("y", String(Math.max(0, Math.round(crop.y))));
@@ -90,6 +94,7 @@
         if (!res.ok || data.ok === false) {
           throw new Error((data && data.error) || ("HTTP " + res.status));
         }
+        if (data.groupId) groupId = data.groupId;
         return data;
       });
     });
@@ -246,6 +251,8 @@
     queue = files;
     index = 0;
     busy = true;
+    batchId = "b_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+    groupId = null;
     setStatus("Выбрано файлов: " + files.length + " — начинаю");
     processNext();
     input.value = "";

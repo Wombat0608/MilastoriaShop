@@ -29,6 +29,10 @@ public class MediaFile {
     private Integer cropY;
     private Integer cropW;
     private Integer cropH;
+    /** Группа пачки загрузки; null — без группы. */
+    private Long groupId;
+    /** Denormalized имя из media_groups (grp-N). */
+    private String groupName;
 
     public long getId() {
         return id;
@@ -172,6 +176,22 @@ public class MediaFile {
 
     public void setCropH(Integer cropH) {
         this.cropH = cropH;
+    }
+
+    public Long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Long groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
     }
 
     public boolean isImage() {

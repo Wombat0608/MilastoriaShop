@@ -7,7 +7,10 @@ import java.util.List;
 
 public interface MediaMapper {
 
-    /** Страница списка: сортировка EXIF-дата DESC (fallback uploaded_at). */
+    /**
+     * Страница списка. Сортировка: группа (новые пачки вверху),
+     * внутри — EXIF/загрузка DESC.
+     */
     List<MediaFile> findPage(@Param("kind") String kind,
                              @Param("q") String q,
                              @Param("limit") int limit,
@@ -19,6 +22,6 @@ public interface MediaMapper {
 
     int insert(MediaFile file);
 
-    /** Удаляет строку; возвращает число затронутых строк (0 = уже забрано). */
+    /** Удаляет строку; 0 = уже забрано. */
     int deleteById(@Param("id") long id);
 }

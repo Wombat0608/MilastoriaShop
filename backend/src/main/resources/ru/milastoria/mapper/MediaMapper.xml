@@ -3,59 +3,66 @@
 <mapper namespace="ru.milastoria.mapper.MediaMapper">
 
     <sql id="cols">
-        id, kind, original_name, path, thumb_path, width, height, uploaded_at,
-        exif_datetime, exif_make, exif_model, exif_orientation, exif_json, exif_search,
-        crop_x, crop_y, crop_w, crop_h
+        f.id, f.kind, f.original_name, f.path, f.thumb_path, f.width, f.height, f.uploaded_at,
+        f.exif_datetime, f.exif_make, f.exif_model, f.exif_orientation, f.exif_json, f.exif_search,
+        f.crop_x, f.crop_y, f.crop_w, f.crop_h, f.group_id, g.name AS group_name
     </sql>
 
-    <!-- LIKE по имени + EXIF-блобу + дате: объём медиатеки маленький, FTS5 избыточен.
-         LOWER() по всем колонкам: q приходит уже lower-case. -->
     <sql id="whereSearch">
         <if test="q != null and q != ''">
             AND (
-                LOWER(original_name) LIKE '%' || #{q} || '%'
-                OR LOWER(COALESCE(exif_search, '')) LIKE '%' || #{q} || '%'
-                OR LOWER(COALESCE(exif_datetime, '')) LIKE '%' || #{q} || '%'
-                OR LOWER(COALESCE(exif_make, '')) LIKE '%' || #{q} || '%'
-                OR LOWER(COALESCE(exif_model, '')) LIKE '%' || #{q} || '%'
+                LOWER(f.original_name) LIKE '%' || #{q} || '%'
+                OR LOWER(COALESCE(f.exif_search, '')) LIKE '%' || #{q} || '%'
+                OR LOWER(COALESCE(f.exif_datetime, '')) LIKE '%' || #{q} || '%'
+                OR LOWER(COALESCE(f.exif_make, '')) LIKE '%' || #{q} || '%'
+                OR LOWER(COALESCE(f.exif_model, '')) LIKE '%' || #{q} || '%'
+                OR LOWER(COALESCE(g.name, '')) LIKE '%' || #{q} || '%'
             )
         </if>
         <if test="kind != null and kind != ''">
-            AND kind = #{kind}
+            AND f.kind = #{kind}
         </if>
     </sql>
 
+    <!-- Сортировка: сначала группа (новые пачки сверху), внутри — EXIF/загрузка DESC -->
     <select id="findPage" resultType="ru.milastoria.domain.MediaFile">
         SELECT <include refid="cols"/>
-        FROM media_files
+        FROM media_files f
+        LEFT JOIN media_groups g ON g.id = f.group_id
         WHERE 1=1
         <include refid="whereSearch"/>
-        ORDER BY COALESCE(exif_datetime, uploaded_at) DESC, id DESC
+        ORDER BY COALESCE(f.group_id, 0) DESC,
+                 COALESCE(f.exif_datetime, f.uploaded_at) DESC,
+                 f.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countPage" resultType="int">
         SELECT COUNT(*)
-        FROM media_files
+        FROM media_files f
+        LEFT JOIN media_groups g ON g.id = f.group_id
         WHERE 1=1
         <include refid="whereSearch"/>
     </select>
 
     <select id="findById" resultType="ru.milastoria.domain.MediaFile">
-        SELECT <include refid="cols"/>
-        FROM media_files
-        WHERE id = #{id}
+        SELECT f.id, f.kind, f.original_name, f.path, f.thumb_path, f.width, f.height, f.uploaded_at,
+               f.exif_datetime, f.exif_make, f.exif_model, f.exif_orientation, f.exif_json, f.exif_search,
+               f.crop_x, f.crop_y, f.crop_w, f.crop_h, f.group_id, g.name AS group_name
+        FROM media_files f
+        LEFT JOIN media_groups g ON g.id = f.group_id
+        WHERE f.id = #{id}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.MediaFile">
         INSERT INTO media_files (
             kind, original_name, path, thumb_path, width, height, uploaded_at,
             exif_datetime, exif_make, exif_model, exif_orientation, exif_json, exif_search,
-            crop_x, crop_y, crop_w, crop_h
+            crop_x, crop_y, crop_w, crop_h, group_id
         ) VALUES (
             #{kind}, #{originalName}, #{path}, #{thumbPath}, #{width}, #{height}, #{uploadedAt},
             #{exifDatetime}, #{exifMake}, #{exifModel}, #{exifOrientation}, #{exifJson}, #{exifSearch},
-            #{cropX}, #{cropY}, #{cropW}, #{cropH}
+            #{cropX}, #{cropY}, #{cropW}, #{cropH}, #{groupId}
         )
     </insert>
 

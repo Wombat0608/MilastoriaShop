@@ -51,6 +51,22 @@ public record MediaLibraryView(List<MediaFile> files,
         return Math.min(totalPages(), page + 1);
     }
 
+    public int firstPage() {
+        return 1;
+    }
+
+    public int lastPage() {
+        return totalPages();
+    }
+
+    public boolean hasFirst() {
+        return page > 1;
+    }
+
+    public boolean hasLast() {
+        return page < totalPages();
+    }
+
     public boolean searching() {
         return query != null && !query.isBlank();
     }

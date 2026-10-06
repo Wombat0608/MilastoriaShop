@@ -157,6 +157,12 @@ CREATE INDEX IF NOT EXISTS idx_analytics_visits_path ON analytics_visits(path);
 -- exif_datetime — дата съёмки из EXIF (или fallback из имени файла/mtime).
 -- Именно по ней по умолчанию сортируется список, null — fallback на uploaded_at.
 -- exif_search — денормализованный lower-case blob для LIKE-поиска по EXIF/имени.
+CREATE TABLE IF NOT EXISTS media_groups (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,           -- grp-${id}
+    created_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS media_files (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     kind           TEXT NOT NULL,
@@ -175,9 +181,12 @@ CREATE TABLE IF NOT EXISTS media_files (
     crop_x         INTEGER,
     crop_y         INTEGER,
     crop_w         INTEGER,
-    crop_h         INTEGER
+    crop_h         INTEGER,
+    group_id       INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_files_exif_dt ON media_files(exif_datetime);
 CREATE INDEX IF NOT EXISTS idx_media_files_uploaded ON media_files(uploaded_at);
 CREATE INDEX IF NOT EXISTS idx_media_files_kind ON media_files(kind);
+-- idx_media_files_group создаётся в App.initSchema после ADD COLUMN group_id
+

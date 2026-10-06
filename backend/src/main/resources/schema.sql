@@ -119,8 +119,19 @@ CREATE TABLE IF NOT EXISTS slogans (
 -- contacts_email, contacts_address, contacts_messengers ("Имя|url" по строке)
 -- Раздел «Галерея» (/gallery, без фильтров) — settings (gallery_*):
 -- gallery_title, gallery_description
--- Шапка hero главной — settings (hero_*):
--- hero_lead, hero_image, hero_image_mobile
+-- Шапка hero главной:
+-- hero_lead — текст под H1 (общий для всех слайдов)
+-- hero_slides — коллекция слайдов: пара ПК+моб (image) или видео
+-- legacy: hero_image / hero_image_mobile — первый слайд при миграции
+CREATE TABLE IF NOT EXISTS hero_slides (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    sort          INTEGER NOT NULL DEFAULT 0,
+    kind          TEXT NOT NULL,              -- image | video
+    desktop_path  TEXT NOT NULL,              -- /content/img/... или /content/video/...
+    mobile_path   TEXT,                       -- image: мобильное фото. video: опц. мобильное видео
+    alt           TEXT,
+    created_at    TEXT
+);
 
 -- Аналитика сайта (серверная, без внешних трекеров).
 -- visitor_id — анонимный id из подписанной cookie

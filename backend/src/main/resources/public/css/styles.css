@@ -396,7 +396,7 @@ p {
 .site-header.is-open .nav-toggle span:nth-child(2) { opacity: 0; }
 .site-header.is-open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-/* ——— Hero ——— */
+/* ——— Hero + promo slider ——— */
 
 .hero {
   position: relative;
@@ -412,13 +412,10 @@ p {
   inset: 0;
 }
 
-.hero__media picture {
+.hero__media picture,
+.hero__media picture img,
+.hero__media video {
   display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.hero__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -429,6 +426,7 @@ p {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(24,18,12,0.05) 0%, rgba(24,18,12,0.08) 40%, rgba(20,15,10,0.62) 100%);
+  pointer-events: none;
 }
 
 .hero__content {
@@ -474,6 +472,105 @@ p {
 .hero__actions .link {
   color: #fff;
   border-color: rgba(255,255,255,0.4);
+}
+
+/* ——— промо-слайдер ——— */
+
+.hero-slider,
+.hero-slider__track {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.7s ease, visibility 0.7s ease;
+}
+
+.hero-slide.is-active {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.hero-slide picture,
+.hero-slide video,
+.hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
+}
+
+.hero-slide video {
+  background: var(--ink);
+}
+
+.hero-nav {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+}
+
+.hero-nav__btn {
+  pointer-events: auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.45);
+  background: rgba(24,18,12,0.35);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.hero-nav__btn:hover {
+  background: rgba(169,119,47,0.75);
+  border-color: var(--gold-soft);
+}
+
+.hero-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1.1rem;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+
+.hero-dot {
+  pointer-events: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.7);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.hero-dot.is-active {
+  background: var(--gold-soft);
+  border-color: var(--gold-soft);
 }
 
 /* ——— Marquee ticker ——— */

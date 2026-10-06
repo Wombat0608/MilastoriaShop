@@ -7,9 +7,11 @@ import io.javalin.http.NotFoundResponse;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import ru.milastoria.domain.Category;
+import ru.milastoria.domain.HeroSlide;
 import ru.milastoria.domain.Lot;
 import ru.milastoria.mapper.CategoryMapper;
 import ru.milastoria.mapper.DictMapper;
+import ru.milastoria.mapper.HeroSlideMapper;
 import ru.milastoria.mapper.LotMapper;
 import ru.milastoria.mapper.SettingsMapper;
 import ru.milastoria.mapper.SloganMapper;
@@ -98,6 +100,17 @@ public class SiteController {
             String heroLead = nvlSettings(settings.get("hero_lead"), DEFAULT_HERO_LEAD);
             String heroImage = nvlSettings(settings.get("hero_image"), DEFAULT_HERO_IMAGE);
             String heroImageMobile = nvlSettings(settings.get("hero_image_mobile"), "");
+            List<HeroSlide> heroSlides = session.getMapper(HeroSlideMapper.class).findAll();
+            // fallback: нет слайдов в БД — один слайд из legacy settings
+            if (heroSlides.isEmpty()) {
+                HeroSlide legacy = new HeroSlide();
+                legacy.setId(0);
+                legacy.setSort(0);
+                legacy.setKind(HeroSlide.KIND_IMAGE);
+                legacy.setDesktopPath(heroImage);
+                legacy.setMobilePath(heroImageMobile);
+                heroSlides = List.of(legacy);
+            }
 
             String aboutTitle = settings.get("about_title");
             if (aboutTitle == null || aboutTitle.isBlank()) {
@@ -146,7 +159,7 @@ public class SiteController {
 
             render(ctx, "home.jte",
                     new HomeView(categories, slogan,
-                            heroLead, heroImage, heroImageMobile,
+                            heroLead, heroImage, heroImageMobile, heroSlides,
                             aboutTitle, aboutHtml, aboutImage,
                             contactsTitle, contactsLead, contactsImage,
                             contactsPhone, contactsEmail, contactsAddress,

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ru.milastoria.mapper.HeroSlideMapper">
+
+    <sql id="cols">
+        id, sort, kind, desktop_path, mobile_path, alt, created_at
+    </sql>
+
+    <select id="findAll" resultType="ru.milastoria.domain.HeroSlide">
+        SELECT <include refid="cols"/>
+        FROM hero_slides
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="findById" resultType="ru.milastoria.domain.HeroSlide">
+        SELECT <include refid="cols"/>
+        FROM hero_slides
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="ru.milastoria.domain.HeroSlide">
+        INSERT INTO hero_slides (sort, kind, desktop_path, mobile_path, alt, created_at)
+        VALUES (#{sort}, #{kind}, #{desktopPath}, #{mobilePath}, #{alt}, #{createdAt})
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM hero_slides WHERE id = #{id}
+    </delete>
+
+    <update id="updateSort">
+        UPDATE hero_slides SET sort = #{sort} WHERE id = #{id}
+    </update>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM hero_slides
+    </select>
+</mapper>

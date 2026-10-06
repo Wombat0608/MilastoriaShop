@@ -39,14 +39,12 @@
         @if(view.attachingBatch())
             <p class="admin-hint">
                 Выбрано файлов: <strong>${view.mediaIds().size()}</strong>
-                — нажмите «Прикрепить» у нужного лота.
-                Фото уйдут с кадром из медиатеки и watermark по умолчанию;
-                для точного кропа откройте файл из медиатеки отдельно.
+                — нажмите «Прикрепить сюда» у нужного лота.
+                Для каждого фото откроется кроп и watermark (по очереди).
             @elseif(view.mediaId() != null)
                 Выберите лот — откроется форма кропа и watermark для этого файла.
             @else
-                Поиск по заголовку, slug и SEO-тексту. Список пагинирован
-                (по ${view.pageSize()} работ на странице).
+                Поиск по заголовку и slug. Список по ${view.pageSize()} работ на странице.
             @endif</p>
 
         <form class="admin-search" method="get" action="/admin/media/lots" id="media-lot-search">

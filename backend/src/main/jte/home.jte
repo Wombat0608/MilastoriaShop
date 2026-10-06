@@ -11,15 +11,50 @@
     path = "/",
     extraJsonLd = "",
     content = @`
-        <section class="hero">
+        <section class="hero" id="hero-slider" data-hero-autoplay="30000">
             <div class="hero__media">
-                <picture>
+                @if(view.hasHeroSlider())
+                    <div class="hero-slider" id="hero-slider-track">
+                        <div class="hero-slider__track">
+                            @for(int si = 0; si < view.heroSlidesSafe().size(); si++)
+                                <div class="hero-slide@if(si == 0) is-active@endif"
+                                     aria-hidden="@if(si == 0)false@else true@endif">
+                                    @if(view.heroSlidesSafe().get(si).isVideo())
+                                        <video src="${view.heroSlidesSafe().get(si).getDesktopPath()}"
+                                               muted autoplay loop playsinline
+                                               preload="metadata"
+                                               aria-label="${view.heroSlidesSafe().get(si).altOrFallback()}"></video>
+                                    @else
+                                        <picture>
+                                            @if(view.heroSlidesSafe().get(si).getMobilePath() != null && !view.heroSlidesSafe().get(si).getMobilePath().isBlank())
+                                                <source media="(max-width: 768px)" srcset="${view.heroSlidesSafe().get(si).getMobilePath()}">
+                                            @endif
+                                            <img src="${view.heroSlidesSafe().get(si).getDesktopPath()}" alt="${view.heroSlidesSafe().get(si).altOrFallback()}" fetchpriority="high">
+                                        </picture>
+                                    @endif
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+                    <div class="hero__shade"></div>
+                    <div class="hero-nav">
+                        <button type="button" class="hero-nav__btn" data-hero-prev aria-label="Предыдущий слайд">‹</button>
+                        <button type="button" class="hero-nav__btn" data-hero-next aria-label="Следующий слайд">›</button>
+                    </div>
+                    <div class="hero-dots" data-hero-dots aria-label="Слайды шапки"></div>
+                @else
                     @if(view.heroImageMobile() != null && !view.heroImageMobile().isBlank())
-                        <source media="(max-width: 768px)" srcset="${view.heroImageMobile()}">
+                        <picture>
+                            <source media="(max-width: 768px)" srcset="${view.heroImageMobile()}">
+                            <img src="${view.heroImage()}" alt="Нарядные платья Milastoria" fetchpriority="high">
+                        </picture>
+                    @else
+                        <picture>
+                            <img src="${view.heroImage()}" alt="Нарядные платья Milastoria" fetchpriority="high">
+                        </picture>
                     @endif
-                    <img src="${view.heroImage()}" alt="Нарядные платья Milastoria" fetchpriority="high">
-                </picture>
-                <div class="hero__shade"></div>
+                    <div class="hero__shade"></div>
+                @endif
             </div>
             <div class="wrap hero__content">
                 <span class="eyebrow">Ателье с 2016 года</span>
@@ -30,6 +65,9 @@
                 </div>
             </div>
         </section>
+        @if(view.hasHeroSlider())
+            <script src="/js/site-hero-slider.js"></script>
+        @endif
 
         @if(!view.categories().isEmpty())
             <div class="marquee" aria-hidden="true">

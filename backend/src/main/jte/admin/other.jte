@@ -80,65 +80,112 @@
         <section class="admin-block" style="margin-top:2rem">
             <h2>Шапка (hero главной)</h2>
             <p class="admin-hint">
-                Подпись под H1-слоганом и фон hero. Слоганы H1 — блок выше.
-                Для телефона можно загрузить отдельный кадр (портрет): он подставится
-                вместо общего на экранах ≤768px. Без мобильного фото используется ПК-версия.
+                Текст под H1 — общий для всех слайдов. Фон — коллекция слайдов:
+                пара «ПК + телефон» или видео (autoplay, без кнопок управления).
+                Если слайдов больше одного — на сайте стрелки ←/→ и автопрокрутка ~30с.
+                Один слайд — статичная шапка без стрелок.
             </p>
 
-            <form method="post" action="/admin/other/hero" enctype="multipart/form-data" class="admin-form">
+            <form method="post" action="/admin/other/hero" class="admin-form">
                 <label>
                     Подпись (текст под слоганом)
                     <textarea name="hero_lead" rows="3"
                               placeholder="Нарядные платья ручной работы для детей и взрослых…">${view.heroLead()}</textarea>
                 </label>
-
-                <div class="cat-cover">
-                    <span class="admin-field-label">Фото для ПК</span>
-                    <div class="cat-cover__row">
-                        <div class="cat-cover__thumb">
-                            @if(view.heroImage() != null && !view.heroImage().isBlank())
-                                <img src="${view.heroImage()}" alt="Hero ПК">
-                            @else
-                                <span class="cat-cover__empty">нет фото</span>
-                            @endif
-                        </div>
-                        <div class="cat-cover__controls">
-                            <label class="btn btn--line cat-cover__btn">
-                                Выбрать / заменить
-                                <input type="file" name="hero_image" accept="image/*" hidden>
-                            </label>
-                            <span class="admin-hint">Без кропа. CONTENT_DIR/img/hero.jpg.</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="cat-cover">
-                    <span class="admin-field-label">Фото для телефона</span>
-                    <div class="cat-cover__row">
-                        <div class="cat-cover__thumb">
-                            @if(view.heroImageMobile() != null && !view.heroImageMobile().isBlank())
-                                <img src="${view.heroImageMobile()}" alt="Hero телефон">
-                            @else
-                                <span class="cat-cover__empty">нет фото — будет ПК-версия</span>
-                            @endif
-                        </div>
-                        <div class="cat-cover__controls">
-                            <label class="btn btn--line cat-cover__btn">
-                                Выбрать / заменить
-                                <input type="file" name="hero_image_mobile" accept="image/*" hidden>
-                            </label>
-                            <span class="admin-hint">
-                                Портрет ~3:4 или 9:16, лучше кроп с акцентом на платье.
-                                CONTENT_DIR/img/hero_mobile.jpg.
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="admin-form__actions">
-                    <button type="submit" class="btn btn--fill">Сохранить шапку</button>
+                    <button type="submit" class="btn btn--fill">Сохранить текст шапки</button>
                 </div>
             </form>
+
+            <h3 style="margin-top:1.5rem">Слайды</h3>
+            <p class="admin-hint">
+                Сейчас слайдов: <strong>${view.heroSlides().size()}</strong>.
+            </p>
+
+            <form method="post" action="/admin/other/hero/slides" enctype="multipart/form-data" class="admin-form">
+                <div class="admin-form__row admin-form__row--fields">
+                    <label class="admin-field">
+                        Алт-текст (alt)
+                        <input type="text" name="alt" placeholder="Нарядные платья Milastoria">
+                    </label>
+                    <label class="admin-field">
+                        Фото для ПК
+                        <input type="file" name="desktop" accept="image/*" required>
+                    </label>
+                    <label class="admin-field">
+                        Фото для телефона (опц.)
+                        <input type="file" name="mobile" accept="image/*">
+                        <span class="admin-hint">Портрет; без файла — на моб. будет ПК-версия.</span>
+                    </label>
+                </div>
+                <div class="admin-form__actions">
+                    <button type="submit" class="btn btn--fill">Добавить фото-слайд</button>
+                </div>
+            </form>
+
+            <form method="post" action="/admin/other/hero/slides/video" enctype="multipart/form-data" class="admin-form" style="margin-top:0.75rem">
+                <div class="admin-form__row admin-form__row--fields">
+                    <label class="admin-field">
+                        Алт-текст
+                        <input type="text" name="alt" placeholder="Видео Milastoria">
+                    </label>
+                    <label class="admin-field">
+                        Видео (MP4/MOV)
+                        <input type="file" name="video" accept="video/*" required>
+                        <span class="admin-hint">На сайте: autoplay muted loop, без controls.</span>
+                    </label>
+                </div>
+                <div class="admin-form__actions">
+                    <button type="submit" class="btn btn--line">Добавить видео-слайд</button>
+                </div>
+            </form>
+
+            @if(view.heroSlides().isEmpty())
+                <div class="admin-empty" style="margin-top:1rem">Слайдов нет — используется legacy hero_image.</div>
+            @else
+                <form method="post" action="/admin/other/hero/slides/reorder" id="hero-slides-reorder" style="margin-top:1rem">
+                    <div class="admin-lot-list" id="hero-slides-grid">
+                        @for(var s : view.heroSlides())
+                            <article class="admin-lot-row" data-slide-id="${s.getId()}">
+                                <div class="admin-lot-row__icon" style="width:72px;height:48px;overflow:hidden">
+                                    @if(s.isVideo())
+                                        <span class="admin-lot-row__placeholder" aria-hidden="true">▶</span>
+                                    @else
+                                        <img src="${s.getDesktopPath()}" alt="" style="width:100%;height:100%;object-fit:cover">
+                                    @endif
+                                </div>
+                                <div class="admin-lot-row__body grow">
+                                    <div class="admin-lot-row__title">
+                                        @if(s.isVideo())
+                                            Видео
+                                        @else
+                                            Фото-пара
+                                        @endif
+                                        · ${s.getAlt() != null && !s.getAlt().isBlank() ? s.getAlt() : "—"}
+                                    </div>
+                                    <div class="admin-lot-row__meta">
+                                        <span class="admin-lot-row__id">#${s.getId()}</span>
+                                        <code class="admin-lot-row__slug">${s.getDesktopPath()}</code>
+                                        @if(s.getMobilePath() != null && !s.getMobilePath().isBlank())
+                                            <span class="admin-lot-row__cat">моб: ${s.getMobilePath()}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="admin-lot-row__actions">
+                                    <button type="button" class="btn btn--line" data-hero-up="${s.getId()}">↑</button>
+                                    <button type="button" class="btn btn--line" data-hero-down="${s.getId()}">↓</button>
+                                    <form method="post" action="/admin/other/hero/slides/${s.getId()}/delete"
+                                          data-confirm="Удалить слайд?">
+                                        <button type="submit" class="btn btn--line">Удалить</button>
+                                    </form>
+                                </div>
+                            </article>
+                        @endfor
+                    </div>
+                    <input type="hidden" name="order" id="hero-order" value="">
+                </form>
+                <script src="/js/admin-hero-slides.js"></script>
+            @endif
         </section>
 
         <section class="admin-block" style="margin-top:2rem">

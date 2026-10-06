@@ -199,6 +199,10 @@ public class App {
         app.post("/admin/other/slogans/{id}/delete", admin::deleteSlogan);
         app.post("/admin/other/slogans/{id}/toggle", admin::toggleSlogan);
         app.post("/admin/other/hero", admin::saveHero);
+        app.post("/admin/other/hero/slides", admin::addHeroSlideImage);
+        app.post("/admin/other/hero/slides/video", admin::addHeroSlideVideo);
+        app.post("/admin/other/hero/slides/reorder", admin::reorderHeroSlides);
+        app.post("/admin/other/hero/slides/{id}/delete", admin::deleteHeroSlide);
         app.post("/admin/other/about", admin::saveAbout);
         app.post("/admin/other/gallery", admin::saveGallerySection);
         app.get("/admin/analytics", admin::analyticsPage);
@@ -276,7 +280,44 @@ public class App {
             if (isEmpty(conn, "lots")) {
                 runScript(conn, "/seed.sql");
             }
+            // миграция hero: settings hero_image → hero_slides, если таблица пуста
+            migrateLegacyHeroSlides(conn);
         }
+    }
+
+    private static void migrateLegacyHeroSlides(Connection conn) throws SQLException {
+        try (ResultSet rs = conn.createStatement().executeQuery("SELECT COUNT(*) FROM hero_slides")) {
+            if (rs.next() && rs.getInt(1) > 0) {
+                return;
+            }
+        }
+        String desktop = readSetting(conn, "hero_image");
+        String mobile = readSetting(conn, "hero_image_mobile");
+        if (desktop == null || desktop.isBlank()) {
+            return;
+        }
+        try (var st = conn.prepareStatement(
+                "INSERT INTO hero_slides (sort, kind, desktop_path, mobile_path, alt, created_at) VALUES (?,?,?,?,?,?)")) {
+            st.setInt(1, 0);
+            st.setString(2, "image");
+            st.setString(3, desktop);
+            st.setString(4, mobile);
+            st.setString(5, "Нарядные платья Milastoria");
+            st.setString(6, java.time.Instant.now().toString());
+            st.executeUpdate();
+        }
+    }
+
+    private static String readSetting(Connection conn, String key) throws SQLException {
+        try (var st = conn.prepareStatement("SELECT value FROM settings WHERE key = ?")) {
+            st.setString(1, key);
+            try (ResultSet rs = st.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        }
+        return null;
     }
 
     private static void addColumnIfMissing(Connection conn, String table, String column, String type)
@@ -357,6 +398,7 @@ public class App {
         configuration.addMapper(SettingsMapper.class);
         configuration.addMapper(SloganMapper.class);
         configuration.addMapper(AnalyticsMapper.class);
+        configuration.addMapper(ru.milastoria.mapper.HeroSlideMapper.class);
         return new SqlSessionFactoryBuilder().build(configuration);
     }
 }

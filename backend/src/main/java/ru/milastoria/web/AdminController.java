@@ -9,6 +9,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.milastoria.domain.Category;
+import ru.milastoria.domain.HeroSlide;
 import ru.milastoria.domain.Lot;
 import ru.milastoria.domain.LotImage;
 import ru.milastoria.image.CropRect;
@@ -17,6 +18,7 @@ import ru.milastoria.analytics.AnalyticsTracker;
 import ru.milastoria.mapper.AnalyticsMapper;
 import ru.milastoria.mapper.CategoryMapper;
 import ru.milastoria.mapper.DictMapper;
+import ru.milastoria.mapper.HeroSlideMapper;
 import ru.milastoria.mapper.LotMapper;
 import ru.milastoria.mapper.SettingsMapper;
 import ru.milastoria.mapper.SloganMapper;
@@ -580,6 +582,7 @@ public class AdminController {
         try (SqlSession session = sqlSessionFactory.openSession()) {
             SloganMapper slogans = session.getMapper(SloganMapper.class);
             SettingsMapper settings = session.getMapper(SettingsMapper.class);
+            List<HeroSlide> slides = session.getMapper(HeroSlideMapper.class).findAll();
             render(ctx, "admin/other.jte", new SlogansView(
                     slogans.findAll(),
                     nvl(settings.get("about_title"), ""),
@@ -590,60 +593,130 @@ public class AdminController {
                     nvl(settings.get("hero_lead"), ""),
                     nvl(settings.get("hero_image"), ""),
                     nvl(settings.get("hero_image_mobile"), ""),
+                    slides,
                     error, notice));
         }
     }
 
+    /** Только текст hero_lead. Фон — коллекция слайдов ниже. */
     public void saveHero(Context ctx) {
         String lead = formParam(ctx, "hero_lead");
-        UploadedFile desktop = ctx.uploadedFile("hero_image");
-        UploadedFile mobile = ctx.uploadedFile("hero_image_mobile");
-
-        String desktopPath = null;
-        String mobilePath = null;
-        String notice = "Шапка сохранена";
-
-        if (hasImageUpload(desktop)) {
-            try {
-                desktopPath = saveContentImage("hero", desktop, null);
-                notice = "Шапка и фото для ПК сохранены";
-            } catch (IOException | InterruptedException e) {
-                ctx.redirect("/admin/other?error=" + urlEncode(
-                        "Не удалось сохранить фото для ПК: " + humanImageError(e)));
-                return;
-            }
-        } else if (isBrokenEmptyUpload(desktop)) {
-            ctx.redirect("/admin/other?error=" + urlEncode(
-                    "Файл «для ПК» пустой (0 байт) — выберите фото заново"));
-            return;
-        }
-
-        if (hasImageUpload(mobile)) {
-            try {
-                mobilePath = saveContentImage("hero_mobile", mobile, null);
-                notice = "Шапка и фото для телефона сохранены";
-            } catch (IOException | InterruptedException e) {
-                ctx.redirect("/admin/other?error=" + urlEncode(
-                        "Не удалось сохранить фото для телефона: " + humanImageError(e)));
-                return;
-            }
-        } else if (isBrokenEmptyUpload(mobile)) {
-            ctx.redirect("/admin/other?error=" + urlEncode(
-                    "Файл «для телефона» пустой (0 байт) — выберите фото заново"));
-            return;
-        }
-
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            SettingsMapper settings = session.getMapper(SettingsMapper.class);
-            settings.put("hero_lead", lead);
-            if (desktopPath != null) {
-                settings.put("hero_image", desktopPath);
+            session.getMapper(SettingsMapper.class).put("hero_lead", lead);
+        }
+        ctx.redirect("/admin/other?notice=" + urlEncode("Текст шапки сохранён"));
+    }
+
+    /** Добавить слайд-пару: фото для ПК + опц. для телефона. */
+    public void addHeroSlideImage(Context ctx) {
+        UploadedFile desktop = ctx.uploadedFile("desktop");
+        UploadedFile mobile = ctx.uploadedFile("mobile");
+        String alt = formParam(ctx, "alt");
+        if (alt.isBlank()) alt = "Нарядные платья Milastoria";
+
+        if (!hasImageUpload(desktop) || isBrokenEmptyUpload(desktop)) {
+            ctx.redirect("/admin/other?error=" + urlEncode("Выберите фото для ПК (обязательно)"));
+            return;
+        }
+        String desktopPath;
+        String mobilePath = null;
+        try {
+            String token = "hero_s" + UUID.randomUUID();
+            desktopPath = saveContentImage(token, desktop, null);
+            if (hasImageUpload(mobile)) {
+                mobilePath = saveContentImage(token + "_m", mobile, null);
             }
-            if (mobilePath != null) {
-                settings.put("hero_image_mobile", mobilePath);
+        } catch (IOException | InterruptedException e) {
+            ctx.redirect("/admin/other?error=" + urlEncode("Не удалось сохранить слайд: " + humanImageError(e)));
+            return;
+        }
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            HeroSlideMapper mapper = session.getMapper(HeroSlideMapper.class);
+            int next = mapper.countAll() + 1;
+            HeroSlide slide = new HeroSlide();
+            slide.setSort(next);
+            slide.setKind(HeroSlide.KIND_IMAGE);
+            slide.setDesktopPath(desktopPath);
+            slide.setMobilePath(mobilePath);
+            slide.setAlt(alt);
+            slide.setCreatedAt(java.time.Instant.now().toString());
+            mapper.insert(slide);
+        }
+        ctx.redirect("/admin/other?notice=" + urlEncode("Фото-слайд добавлен"));
+    }
+
+    /** Добавить видео-слайд (autoplay без controls). */
+    public void addHeroSlideVideo(Context ctx) {
+        UploadedFile video = ctx.uploadedFile("video");
+        String alt = formParam(ctx, "alt");
+        if (alt.isBlank()) alt = "Видео Milastoria";
+        if (video == null || video.size() <= 0) {
+            ctx.redirect("/admin/other?error=" + urlEncode("Выберите видеофайл"));
+            return;
+        }
+        String path;
+        try {
+            path = saveHeroVideo(video);
+        } catch (IOException e) {
+            ctx.redirect("/admin/other?error=" + urlEncode("Не удалось сохранить видео: " + humanImageError(e)));
+            return;
+        }
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            HeroSlideMapper mapper = session.getMapper(HeroSlideMapper.class);
+            HeroSlide slide = new HeroSlide();
+            slide.setSort(mapper.countAll() + 1);
+            slide.setKind(HeroSlide.KIND_VIDEO);
+            slide.setDesktopPath(path);
+            slide.setAlt(alt);
+            slide.setCreatedAt(java.time.Instant.now().toString());
+            mapper.insert(slide);
+        }
+        ctx.redirect("/admin/other?notice=" + urlEncode("Видео-слайд добавлен"));
+    }
+
+    public void deleteHeroSlide(Context ctx) {
+        long id = Long.parseLong(ctx.pathParam("id"));
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            session.getMapper(HeroSlideMapper.class).deleteById(id);
+        }
+        ctx.redirect("/admin/other?notice=" + urlEncode("Слайд удалён"));
+    }
+
+    public void reorderHeroSlides(Context ctx) {
+        String order = formParam(ctx, "order");
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            HeroSlideMapper mapper = session.getMapper(HeroSlideMapper.class);
+            int i = 1;
+            for (String part : order.split(",")) {
+                if (part == null || part.isBlank()) continue;
+                try {
+                    long id = Long.parseLong(part.trim());
+                    if (id > 0) {
+                        mapper.updateSort(id, i++);
+                    }
+                } catch (NumberFormatException ignored) {
+                    // мусор в поле order
+                }
             }
         }
-        ctx.redirect("/admin/other?notice=" + urlEncode(notice));
+        ctx.redirect("/admin/other?notice=" + urlEncode("Порядок слайдов сохранён"));
+    }
+
+    private String saveHeroVideo(UploadedFile uploaded) throws IOException {
+        Path videoDir = contentDir.resolve("video");
+        Files.createDirectories(videoDir);
+        String ext = extensionOf(uploaded.filename());
+        if (ext.isBlank()) ext = ".mp4";
+        String token = "hero_v" + UUID.randomUUID() + ext;
+        Path dest = videoDir.resolve(token);
+        try (var in = uploaded.content()) {
+            Files.copy(in, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+        if (Files.size(dest) <= 0) {
+            Files.deleteIfExists(dest);
+            throw new IOException("Видео пустое");
+        }
+        return "/content/video/" + token;
     }
 
     public void addSlogan(Context ctx) {

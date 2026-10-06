@@ -1,18 +1,16 @@
 package ru.milastoria.view;
 
+import ru.milastoria.domain.HeroSlide;
+
 import java.util.List;
 
-/**
- * Главная: случайный H1-слоган + hero + направления + «О нас» + «Контакты».
- * Избранное и видео живут в галерее (только внутри выбранного раздела).
- * slogan/aboutHtml — сырой HTML через {@link RawHtml}.
- * heroImageMobile пустой → браузер берёт heroImage (десктоп).
- */
+/** Главная: случайный H1-слоган + hero-слайдер + направления + «О нас» + «Контакты». */
 public record HomeView(List<CategoryTile> categories,
                        String sloganHtml,
                        String heroLead,
                        String heroImage,
                        String heroImageMobile,
+                       List<HeroSlide> heroSlides,
                        String aboutTitle,
                        String aboutHtml,
                        String aboutImage,
@@ -32,6 +30,14 @@ public record HomeView(List<CategoryTile> categories,
 
     public RawHtml aboutContent() {
         return RawHtml.of(aboutHtml);
+    }
+
+    public boolean hasHeroSlider() {
+        return heroSlides != null && heroSlides.size() > 1;
+    }
+
+    public List<HeroSlide> heroSlidesSafe() {
+        return heroSlides == null ? List.of() : heroSlides;
     }
 
     /** Мобильная картинка hero; если не задана — та же, что для ПК. */

@@ -1,4 +1,4 @@
-/* Промо-слайдер hero: автоплей 30с, стрелки ←/→.
+/* Промо-слайдер hero: автоплей 15с, стрелки ←/→.
    Без стрелок и автоплея, если слайдов ≤ 1.
    Видео: autoplay muted playsinline, без controls; pause при уходе со слайда. */
 
@@ -14,7 +14,7 @@
   var dotsWrap = root.querySelector("[data-hero-dots]");
   var index = 0;
   var timer = null;
-  var AUTO_MS = 30000;
+  var AUTO_MS = 15000;
   var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function show(i) {

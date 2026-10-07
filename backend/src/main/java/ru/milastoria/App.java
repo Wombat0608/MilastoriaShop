@@ -142,7 +142,9 @@ public class App {
         app.get("/about", ctx -> ctx.redirect("/#about", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
         app.get("/contacts", ctx -> ctx.redirect("/#contacts", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));
         // robots.txt — статика из classpath (public/robots.txt)
+        // GET + HEAD: без HEAD-роута Caddy/Jetty отдавали text/plain и пустое тело
         app.get("/sitemap.xml", sitemap::sitemap);
+        app.head("/sitemap.xml", sitemap::sitemap);
 
         // Публичные страницы сайта — анонимная аналитика (visitor/session cookie).
         // Пропускает /admin, статику, ботов; ошибки трекера не валят ответ.

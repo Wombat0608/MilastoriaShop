@@ -54,9 +54,24 @@ public class SitemapController {
         }
 
         xml.append("</urlset>\n");
-        ctx.contentType("application/xml; charset=utf-8");
+        String body = xml.toString();
+        // Явный Content-Type на ctx + raw response: Javalin/Caddy на HEAD
+        // иначе отдавали text/plain (Google/браузеры ожидают XML).
+        applyXmlContentType(ctx);
         ctx.header("Cache-Control", "max-age=3600");
-        ctx.result(xml.toString());
+        ctx.result(body);
+    }
+
+    /** application/xml без charset в contentType — charset проставляем отдельно. */
+    public static void applyXmlContentType(Context ctx) {
+        ctx.contentType("application/xml");
+        ctx.header("Content-Type", "application/xml; charset=utf-8");
+        try {
+            ctx.res.setContentType("application/xml");
+            ctx.res.setCharacterEncoding("UTF-8");
+        } catch (Exception ignore) {
+            // сырой response не обязателен — ctx.contentType уже достаточно
+        }
     }
 
     private void appendUrl(StringBuilder xml, String path, String lastmod, String priority) {

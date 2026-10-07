@@ -9,7 +9,7 @@
 
 | ID | Статус | Задача | Детали |
 |----|--------|--------|--------|
-| T1 | in_progress | HEAD `/sitemap.xml` Content-Type | На проде `content-type: text/plain` + `content-length: 0`; GET уже XML. Фикс локально: `SitemapController.applyXmlContentType` + `app.head("/sitemap.xml")` в `App.java`. Шаги: commit → rsync `backend/` → `docker compose up -d --build` → curl `-I`. Запуск: 2026-10-07T11:06Z |
+| T1 | done | HEAD `/sitemap.xml` Content-Type | На проде было `text/plain` + `content-length: 0`. Фикс: `SitemapController.applyXmlContentType` (`ctx.res()`) + `app.head("/sitemap.xml")`. Commits `c20246c` + `64f4d71`. Deployed 2026-10-07T11:18Z. **HEAD live:** `application/xml;charset=utf-8`, `content-length: 5337`, `cache-control: max-age=3600`. GET 200 XML OK. home/gallery 200, admin 302. |
 
 ---
 
@@ -52,4 +52,7 @@
 - 2026-10-07T11:06Z — старт: HEAD prod `text/plain`; SSH OK; контейнеры up.
 - 2026-10-07T11:13Z — backup тома `/var/backups/milastoria-pre-deploy-20261007-111344.tgz` (808M); rsync OK; `app.yml` mode 600 цел.
 - 2026-10-07T11:14Z — rebuild FAILED: `SitemapController` `ctx.res` — в Javalin 6 это метод `ctx.res()`.
-- 2026-10-07T11:16Z — fix `ctx.res()` + charset; HEAD route уже в `App.java`; commit будет `c20246c` amend/re-commit.
+- 2026-10-07T11:16Z — fix `ctx.res()` + charset; commits `c20246c`, `64f4d71`.
+- 2026-10-07T11:16Z — rsync pitfall: `backend/src` без `/` → nested `src/src` на VPS; старый файл не обновился. Повторный rsync `backend/src/` + `--delete` + `rm -rf .../src/src`; дерево 140/140 совпало.
+- 2026-10-07T11:18Z — rebuild SUCCESS; Javalin started; smoke OK.
+- 2026-10-07T11:18Z — **T1 done:** HEAD `https://milastoria.com/sitemap.xml` → `application/xml;charset=utf-8` + `content-length: 5337`.

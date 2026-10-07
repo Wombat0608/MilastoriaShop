@@ -46,6 +46,48 @@
     hint.hidden = !text;
   }
 
+  /** Подсказка + кнопка «Прикрепить» прямо в сообщении (без скролла к форме). */
+  function showHintWithSubmit(text) {
+    var hint = hidden("attach-crop-hint");
+    if (!hint) {
+      hint = document.createElement("p");
+      hint.id = "attach-crop-hint";
+      hint.className = "admin-notice";
+      form.insertBefore(hint, form.firstChild);
+    }
+    hint.textContent = "";
+    hint.hidden = false;
+    hint.appendChild(document.createTextNode(text + " "));
+    var btn = document.createElement("button");
+    btn.type = "submit";
+    btn.className = "btn btn--fill";
+    btn.textContent = "Прикрепить";
+    hint.appendChild(btn);
+    var picker = document.getElementById("attach-lot-picker");
+    if (picker && picker.scrollIntoView) {
+      picker.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function lotSelected() {
+    var el = document.getElementById("attach-lot-id");
+    return !!(el && el.value);
+  }
+
+  /**
+   * Лот уже выбран → сразу submit (следующий кроп в очереди).
+   * Иначе — подсказка с кнопкой «Прикрепить» в самом сообщении.
+   */
+  function finishOrPrompt(nextText) {
+    if (lotSelected()) {
+      showHint(nextText || "Кроп и watermark готовы — прикрепляю…");
+      if (form.requestSubmit) form.requestSubmit();
+      else form.submit();
+      return;
+    }
+    showHintWithSubmit(nextText || "Кроп и watermark готовы. Выберите лот и нажмите «Прикрепить».");
+  }
+
   function closeStage() {
     if (!stage) return;
     stage.hidden = true;
@@ -136,7 +178,7 @@
       try { cropper.destroy(); } catch (e) { /* ignore */ }
       cropper = null;
     }
-    showHint("Без кропа: файл уйдёт целиком, watermark по умолчанию.");
+    finishOrPrompt("Без кропа: файл уйдёт целиком, watermark по умолчанию.");
   }
 
   if (openBtn) {
@@ -169,7 +211,8 @@
       setVal("no_crop", "");
       // WM-поля пишет admin-crop-wm.js (capture=true на той же кнопке)
       closeStage();
-      showHint("Кроп и watermark готовы — нажмите «Прикрепить».");
+      // лот уже выбран → сразу attach, без промежуточного «нажмите Прикрепить»
+      finishOrPrompt("Кроп и watermark готовы.");
     });
   }
 

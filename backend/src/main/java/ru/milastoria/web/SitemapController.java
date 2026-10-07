@@ -55,20 +55,20 @@ public class SitemapController {
 
         xml.append("</urlset>\n");
         String body = xml.toString();
-        // Явный Content-Type на ctx + raw response: Javalin/Caddy на HEAD
-        // иначе отдавали text/plain (Google/браузеры ожидают XML).
+        // Явный Content-Type на ctx + raw response: HEAD без роута
+        // Javalin/Jetty отдавали text/plain + 0 байт (GSC/браузеры ждут XML).
         applyXmlContentType(ctx);
         ctx.header("Cache-Control", "max-age=3600");
         ctx.result(body);
     }
 
-    /** application/xml без charset в contentType — charset проставляем отдельно. */
+    /** Javalin 6: raw response — ctx.res() метод, не поле ctx.res. */
     public static void applyXmlContentType(Context ctx) {
-        ctx.contentType("application/xml");
+        ctx.contentType("application/xml; charset=utf-8");
         ctx.header("Content-Type", "application/xml; charset=utf-8");
         try {
-            ctx.res.setContentType("application/xml");
-            ctx.res.setCharacterEncoding("UTF-8");
+            ctx.res().setContentType("application/xml");
+            ctx.res().setCharacterEncoding("UTF-8");
         } catch (Exception ignore) {
             // сырой response не обязателен — ctx.contentType уже достаточно
         }

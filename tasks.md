@@ -50,6 +50,6 @@
 ## Журнал T1
 
 - 2026-10-07T11:06Z — старт: HEAD prod `text/plain`; SSH OK; контейнеры up.
-- 2026-10-07T11:0xZ — commit `SitemapController` + `App.java` (HEAD route).
-- 2026-10-07T11:0xZ — backup тома + rsync + rebuild.
-- 2026-10-07T11:0xZ — smoke: HEAD/GET `/sitemap.xml`.
+- 2026-10-07T11:13Z — backup тома `/var/backups/milastoria-pre-deploy-20261007-111344.tgz` (808M); rsync OK; `app.yml` mode 600 цел.
+- 2026-10-07T11:14Z — rebuild FAILED: `SitemapController` `ctx.res` — в Javalin 6 это метод `ctx.res()`.
+- 2026-10-07T11:16Z — fix `ctx.res()` + charset; HEAD route уже в `App.java`; commit будет `c20246c` amend/re-commit.

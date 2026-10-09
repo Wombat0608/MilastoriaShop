@@ -17,9 +17,9 @@
 
         <div class="section-head admin-head">
             <h1>@if(view.attachingBatch())
-                Прикрепить к лоту (@{view.mediaIds().size()} файл(ов))
+                Прикрепить к лоту (${view.mediaIds().size()} файл(ов))
             @elseif(view.mediaId() != null)
-                Куда прикрепить файл #@{view.mediaId()}
+                Куда прикрепить файл #${view.mediaId()}
             @else
                 Выберите лот
             @endif</h1>

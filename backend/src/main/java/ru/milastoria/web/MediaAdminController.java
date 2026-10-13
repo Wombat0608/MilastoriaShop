@@ -525,7 +525,17 @@ public class MediaAdminController {
             ctx.redirect("/admin/media?lotId=" + lotId + "&error=" + urlEncode("Отметьте хотя бы один файл"));
             return;
         }
+        attachToLot(ctx, lotId, mediaIds, null);
+    }
 
+    /**
+     * Общая процедура batch-attach: видео прикрепляется сразу, фото уходит
+     * в очередь кропа с watermark (первый файл — форма, остальные — queue).
+     * Общий путь для кнопки «Прикрепить» в медиатеке и для «В новый лот»
+     * (AdminController.createLot передаёт baseNotice «Лот «X» создан» —
+     * он склеивается с результатом по видео).
+     */
+    public void attachToLot(Context ctx, long lotId, List<Long> mediaIds, String baseNotice) {
         List<Long> images = new ArrayList<>();
         List<Long> videos = new ArrayList<>();
         try (SqlSession session = sqlSessionFactory.openSession()) {
@@ -546,34 +556,48 @@ public class MediaAdminController {
 
         if (!images.isEmpty()) {
             // фото: очередь с кропом/WM, не «тихий» attach
-            Long first = images.get(0);
-            StringBuilder queue = new StringBuilder();
-            for (int i = 1; i < images.size(); i++) {
-                if (queue.length() > 0) queue.append(',');
-                queue.append(images.get(i));
-            }
-            String qs = "lotId=" + lotId;
-            if (queue.length() > 0) {
-                qs += "&queue=" + urlEncode(queue.toString());
-            }
+            String videoNotice = null;
             if (videoOk > 0 || !videoErrors.isEmpty()) {
-                String notice = "Видео прикреплено: " + videoOk;
+                videoNotice = "Видео прикреплено: " + videoOk;
                 if (!videoErrors.isEmpty()) {
-                    notice += ". Ошибки: " + String.join("; ", videoErrors);
+                    videoNotice += ". Ошибки: " + String.join("; ", videoErrors);
                 }
-                qs += "&notice=" + urlEncode(notice);
+            }
+            String notice = mergeNotices(baseNotice, videoNotice);
+            Long first = images.get(0);
+            StringBuilder qs = new StringBuilder("lotId=" + lotId);
+            if (images.size() > 1) {
+                qs.append("&queue=").append(urlEncode(csv(images.subList(1, images.size()))));
+            }
+            if (notice != null) {
+                qs.append("&notice=").append(urlEncode(notice));
             }
             ctx.redirect("/admin/media/" + first + "/attach?" + qs);
             return;
         }
 
         if (!videoErrors.isEmpty()) {
-            ctx.redirect("/admin/lots/" + lotId + "/photos?error="
-                    + urlEncode("Прикреплено видео: " + videoOk + ". " + String.join("; ", videoErrors)));
+            StringBuilder qs = new StringBuilder("/admin/lots/" + lotId + "/photos")
+                    .append("?error=")
+                    .append(urlEncode("Прикреплено видео: " + videoOk + ". " + String.join("; ", videoErrors)));
+            if (baseNotice != null && !baseNotice.isBlank()) {
+                qs.append("&notice=").append(urlEncode(baseNotice));
+            }
+            ctx.redirect(qs.toString());
             return;
         }
-        ctx.redirect("/admin/lots/" + lotId + "/photos?notice="
-                + urlEncode("Прикреплено видео: " + videoOk));
+        String notice = mergeNotices(baseNotice, "Прикреплено видео: " + videoOk);
+        ctx.redirect("/admin/lots/" + lotId + "/photos?notice=" + urlEncode(notice));
+    }
+
+    /** «Лот создан» + «Прикреплено видео: 2» → «Лот создан. Прикреплено видео: 2»; пустое отбрасываем. */
+    private static String mergeNotices(String a, String b) {
+        boolean hasA = a != null && !a.isBlank();
+        boolean hasB = b != null && !b.isBlank();
+        if (hasA && hasB) return a + ". " + b;
+        if (hasA) return a;
+        if (hasB) return b;
+        return null;
     }
 
     /** Javalin pathParam() кидает, если параметра нет в шаблоне роута. */
@@ -951,7 +975,8 @@ public class MediaAdminController {
         lotMapper.insertVideo(video);
     }
 
-    private static List<Long> parseIdList(String raw) {
+    /** «1,2,3» / «1 2 3» → id-список без дублей; используется и AdminController. */
+    static List<Long> parseIdList(String raw) {
         if (raw == null || raw.isBlank()) {
             return List.of();
         }

@@ -107,14 +107,17 @@ public class App {
         String sessionSecret = cfg.get("admin.session_secret", "SESSION_SECRET",
                 "dev-only-insecure-secret-change-me");
         AnalyticsTracker analytics = new AnalyticsTracker(sqlSessionFactory, sessionSecret);
-        AdminController admin = new AdminController(
-                sqlSessionFactory, templateEngine, imageProcessor, auth,
-                contentDirPath.toAbsolutePath().normalize(),
-                contentDirPath.toAbsolutePath().normalize().resolve("originals")
-        );
+        // mediaAdmin раньше admin: AdminController вызывает attachToLot
+        // после создания лота («В новый лот» в медиатеке).
         MediaAdminController mediaAdmin = new MediaAdminController(
                 sqlSessionFactory, templateEngine, imageProcessor,
                 contentDirPath.toAbsolutePath().normalize()
+        );
+        AdminController admin = new AdminController(
+                sqlSessionFactory, templateEngine, imageProcessor, auth,
+                contentDirPath.toAbsolutePath().normalize(),
+                contentDirPath.toAbsolutePath().normalize().resolve("originals"),
+                mediaAdmin
         );
 
         Javalin app = Javalin.create(config -> {

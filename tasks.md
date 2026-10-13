@@ -10,6 +10,7 @@
 | ID | Статус | Задача | Детали |
 |----|--------|--------|--------|
 | T1 | done | HEAD `/sitemap.xml` Content-Type | На проде было `text/plain` + `content-length: 0`. Фикс: `SitemapController.applyXmlContentType` (`ctx.res()`) + `app.head("/sitemap.xml")`. Commits `c20246c` + `64f4d71`. Deployed 2026-10-07T11:18Z. **HEAD live:** `application/xml;charset=utf-8`, `content-length: 5337`, `cache-control: max-age=3600`. GET 200 XML OK. home/gallery 200, admin 302. |
+| T2 | done | Медиатека «В новый лот» | Multi-select → кнопка «В новый лот» рядом с «Прикрепить» (`media.jte` GET `/admin/lots/new?mediaIds=…`), форма создания с hidden `media_ids`, attach **только после успешного создания** через общий `MediaAdminController.attachToLot` (видео — сразу, фото — в очередь кропа). Также починен проброс `notice`/`error` на страницу фото (`AdminPhotosView` + `photos.jte`). `mvn test` (JDK 21): 30/30 OK, вкл. новый `LotFormViewTest`. 2026-10-13. **Не закоммичено, не на проде.** |
 
 ---
 

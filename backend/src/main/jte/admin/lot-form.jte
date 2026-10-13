@@ -30,7 +30,18 @@
             <p class="admin-notice">${view.notice()}</p>
         @endif
 
+        @if(view.creating() && view.attachingMedia())
+            <p class="admin-notice">
+                Из медиатеки выбрано файлов: <strong>${view.mediaIdsCount()}</strong>.
+                Они будут прикреплены к лоту <strong>после успешного создания</strong>
+                (фото — с кропом и watermark по очереди, видео — сразу).
+            </p>
+        @endif
+
         <form method="post" action="${view.action()}" class="admin-form admin-form--lot">
+            @if(view.creating() && view.attachingMedia())
+                <input type="hidden" name="media_ids" value="${view.mediaIds()}">
+            @endif
             <label>
                 Название *
                 <input type="text" name="title" required

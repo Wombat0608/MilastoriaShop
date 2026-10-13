@@ -1,5 +1,6 @@
 /* Медиатека: множественный выбор файлов + прикрепление к лоту.
    Кнопка «Прикрепить» всегда с подписью «Прикрепить», disabled без выбора.
+   «В новый лот» — GET на /admin/lots/new?mediaIds=… (та же кнопка disabled).
    Фильтры kind/applied: submit в jte onchange + JS (page=1). */
 
 (function () {
@@ -12,6 +13,9 @@
   var batchForm = document.getElementById("media-batch-form");
   var batchIdsField = document.getElementById("media-batch-ids");
   var batchSubmit = document.getElementById("media-batch-submit");
+  var newLotForm = document.getElementById("media-newlot-form");
+  var newLotIdsField = document.getElementById("media-newlot-ids");
+  var newLotSubmit = document.getElementById("media-newlot-submit");
   var deleteForm = document.getElementById("media-delete-form");
   var deleteSubmit = document.getElementById("media-delete-submit");
 
@@ -71,8 +75,14 @@
       batchSubmit.disabled = n === 0;
       batchSubmit.textContent = "Прикрепить";
     }
+    if (newLotSubmit) {
+      newLotSubmit.disabled = n === 0;
+    }
     if (deleteSubmit) {
       deleteSubmit.disabled = n === 0;
+    }
+    if (newLotForm && newLotIdsField) {
+      newLotIdsField.value = ids.join(",");
     }
     if (batchForm) {
       Array.prototype.slice.call(batchForm.querySelectorAll("input[data-batch-id]"))
@@ -121,6 +131,15 @@
       if (!ids.length) {
         e.preventDefault();
         return;
+      }
+    });
+  }
+
+  if (newLotForm) {
+    newLotForm.addEventListener("submit", function (e) {
+      sync();
+      if (!selectedIds().length) {
+        e.preventDefault();
       }
     });
   }

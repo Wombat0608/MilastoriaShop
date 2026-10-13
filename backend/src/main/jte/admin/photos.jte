@@ -25,6 +25,9 @@
         @if(view.error() != null)
             <p class="admin-error">${view.error()}</p>
         @endif
+        @if(view.notice() != null)
+            <p class="admin-notice">${view.notice()}</p>
+        @endif
 
         <p class="admin-hint" style="margin-bottom:0.75rem">
             Порядок: перетащите фото. Watermark: на кропе — тяните и растягивайте рамку

@@ -66,19 +66,22 @@ public class AdminController {
     private final Auth auth;
     private final Path contentDir;
     private final Path originalsDir;
+    private final MediaAdminController mediaAdmin;
 
     public AdminController(SqlSessionFactory sqlSessionFactory,
                             TemplateEngine templateEngine,
                             ImageProcessor imageProcessor,
                             Auth auth,
                             Path contentDir,
-                            Path originalsDir) {
+                            Path originalsDir,
+                            MediaAdminController mediaAdmin) {
         this.sqlSessionFactory = sqlSessionFactory;
         this.templateEngine = templateEngine;
         this.imageProcessor = imageProcessor;
         this.auth = auth;
         this.contentDir = contentDir;
         this.originalsDir = originalsDir;
+        this.mediaAdmin = mediaAdmin;
     }
 
     public boolean isAuthenticated(Context ctx) {
@@ -156,8 +159,11 @@ public class AdminController {
     // ─────────────── лоты: форма create/edit ───────────────
 
     public void lotFormNew(Context ctx) {
+        // ?mediaIds=1,2,3 — «В новый лот» из медиатеки: файлы прикрепятся
+        // к лоту только после успешного создания (см. createLot).
+        String mediaIds = normalize(ctx.queryParam("mediaIds"));
         try (SqlSession session = sqlSessionFactory.openSession()) {
-            render(ctx, "admin/lot-form.jte", emptyLotForm(session, null, null));
+            render(ctx, "admin/lot-form.jte", emptyLotForm(session, null, null, mediaIds));
         }
     }
 
@@ -188,10 +194,15 @@ public class AdminController {
     }
 
     public void createLot(Context ctx) {
+        // media_ids — файлы из медиатеки («В новый лот»); при валидационной
+        // ошибке возвращаются в форму, при успехе прикрепляются к лоту.
+        String mediaIds = normalize(ctx.formParam("media_ids"));
+        long newLotId;
+        String title = formParam(ctx, "title");
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
             String error = validateLotForm(session, ctx, null);
             if (error != null) {
-                render(ctx, "admin/lot-form.jte", emptyLotForm(session, ctx, error));
+                render(ctx, "admin/lot-form.jte", emptyLotForm(session, ctx, error, mediaIds));
                 return;
             }
 
@@ -205,8 +216,18 @@ public class AdminController {
             mapper.insert(lot);
             saveDicts(session, lot.getId(), dictSel);
             LotSearchIndex.indexLot(session, lot, mapper.findTagNamesByLotId(lot.getId()));
+            newLotId = lot.getId();
         }
-        ctx.redirect("/admin?notice=" + urlEncode("Лот «" + formParam(ctx, "title") + "» создан"));
+        // Общая процедура прикрепления — ТОЛЬКО после успешного создания
+        // (выше return на ошибке валидации). Сессия уже закрыта: HikariCP
+        // pool=1, вложенная сессия deadlock'ит.
+        List<Long> mediaIdList = MediaAdminController.parseIdList(mediaIds);
+        if (!mediaIdList.isEmpty()) {
+            mediaAdmin.attachToLot(ctx, newLotId, mediaIdList,
+                    "Лот «" + title + "» создан");
+            return;
+        }
+        ctx.redirect("/admin?notice=" + urlEncode("Лот «" + title + "» создан"));
     }
 
     public void updateLot(Context ctx) {
@@ -437,8 +458,12 @@ public class AdminController {
             }
             double[] wm = loadWmDefaults(session);
             List<LotImage> images = dedupeImagesByThumb(mapper.findImagesByLotId(lotId));
+            // notice/error приходят с редиректов attach-процедуры («В новый лот»,
+            // batch-attach, очередь кропа) — иначе итог прикрепления не виден
             render(ctx, "admin/photos.jte",
-                    new AdminPhotosView(lot, images, null, wm[0], wm[1]));
+                    new AdminPhotosView(lot, images,
+                            ctx.queryParam("error"), ctx.queryParam("notice"),
+                            wm[0], wm[1]));
         }
     }
 
@@ -1054,7 +1079,7 @@ public class AdminController {
             if (uploaded == null) {
                 double[] wm = loadWmDefaults(session);
                 render(ctx, "admin/photos.jte",
-                        new AdminPhotosView(lot, mapper.findImagesByLotId(lotId), "Файл не выбран", wm[0], wm[1]));
+                        new AdminPhotosView(lot, mapper.findImagesByLotId(lotId), "Файл не выбран", null, wm[0], wm[1]));
                 return;
             }
 
@@ -1069,7 +1094,7 @@ public class AdminController {
             } catch (NumberFormatException e) {
                 double[] wm = loadWmDefaults(session);
                 render(ctx, "admin/photos.jte",
-                        new AdminPhotosView(lot, mapper.findImagesByLotId(lotId), "Не удалось прочитать область кропа", wm[0], wm[1]));
+                        new AdminPhotosView(lot, mapper.findImagesByLotId(lotId), "Не удалось прочитать область кропа", null, wm[0], wm[1]));
                 return;
             }
 
@@ -1109,7 +1134,7 @@ public class AdminController {
                 double[] wm = loadWmDefaults(session);
                 render(ctx, "admin/photos.jte",
                         new AdminPhotosView(lot, mapper.findImagesByLotId(lotId),
-                                "Не получилось обработать фото: " + e.getMessage(), wm[0], wm[1]));
+                                "Не получилось обработать фото: " + e.getMessage(), null, wm[0], wm[1]));
             }
         }
     }
@@ -1338,7 +1363,7 @@ public class AdminController {
         replaceTags(session, lotMapper, lotId, String.join(", ", sel.tags()));
     }
 
-    private LotFormView emptyLotForm(SqlSession session, Context ctx, String error) {
+    private LotFormView emptyLotForm(SqlSession session, Context ctx, String error, String mediaIds) {
         DictMapper dict = session.getMapper(DictMapper.class);
         List<String> occasions = List.of();
         List<String> fabrics = List.of();
@@ -1356,7 +1381,7 @@ public class AdminController {
                 dict.findNamesByKind("occasion"),
                 dict.findNamesByKind("fabric"),
                 dict.findNamesByKind("tag"),
-                error, null);
+                error, null, mediaIds);
     }
 
     private LotFormView draftLotForm(SqlSession session, Context ctx, Lot draft, DictSelection sel, String error) {

@@ -7,6 +7,8 @@ import java.util.List;
 /**
  * Модель формы лота. selected* — уже выбранные значения словарей;
  * options* — все значения словарей для lookup.
+ * mediaIds — CSV id файлов из медиатеки («В новый лот»): прикрепляются
+ * к лоту только после успешного создания (hidden-поле media_ids).
  */
 public record LotFormView(
         ru.milastoria.domain.Lot lot,
@@ -18,10 +20,28 @@ public record LotFormView(
         List<String> fabricOptions,
         List<String> tagOptions,
         String error,
-        String notice
+        String notice,
+        String mediaIds
 ) {
     public boolean creating() {
         return lot == null;
+    }
+
+    /** Есть ли файлы из медиатеки, которые прикрепятся после создания. */
+    public boolean attachingMedia() {
+        return mediaIds != null && !mediaIds.isBlank();
+    }
+
+    /** Сколько файлов будет прикреплено после создания. */
+    public int mediaIdsCount() {
+        if (!attachingMedia()) {
+            return 0;
+        }
+        int n = 0;
+        for (String part : mediaIds.split(",")) {
+            if (!part.isBlank()) n++;
+        }
+        return n;
     }
 
     public String pageTitle() {
@@ -56,10 +76,11 @@ public record LotFormView(
                                      List<String> occasionOptions,
                                      List<String> fabricOptions,
                                      List<String> tagOptions,
-                                     String error) {
+                                     String error,
+                                     String mediaIds) {
         return new LotFormView(null, categories,
                 List.of(), List.of(), List.of(),
-                occasionOptions, fabricOptions, tagOptions, error, null);
+                occasionOptions, fabricOptions, tagOptions, error, null, mediaIds);
     }
 
     public static LotFormView edit(ru.milastoria.domain.Lot lot,
@@ -73,6 +94,6 @@ public record LotFormView(
                                    String error,
                                    String notice) {
         return new LotFormView(lot, categories, occasions, fabrics, tags,
-                occasionOptions, fabricOptions, tagOptions, error, notice);
+                occasionOptions, fabricOptions, tagOptions, error, notice, null);
     }
 }

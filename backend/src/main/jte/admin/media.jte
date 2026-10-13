@@ -169,6 +169,12 @@
                         </button>
                     </form>
                 @endif
+                <form method="get" action="/admin/lots/new" id="media-newlot-form" data-no-loading>
+                    <input type="hidden" name="mediaIds" id="media-newlot-ids" value="">
+                    <button type="submit" class="btn btn--line" id="media-newlot-submit" disabled>
+                        В новый лот
+                    </button>
+                </form>
                 <button type="button" class="btn btn--line" id="media-select-none">Снять выбор</button>
                 <form method="post" action="/admin/media/delete-batch" id="media-delete-form"
                       data-loading-message="Удаляю выбранные файлы…">

@@ -93,10 +93,16 @@
       обычный SQL с динамической сборкой строки, ничего не генерируется
       по имени метода, как в Spring Data JPA.
     -->
+    <!--
+      Публичная галерея: сначала разделы (categories.sort — как в админке),
+      внутри раздела — поле «Порядок» (lots.sort), при равенстве id (стабильно).
+      Так женские и детские платья не перемешиваются на «Все работы».
+    -->
     <select id="findPublished" resultType="ru.milastoria.domain.Lot">
         SELECT l.id, l.slug, l.title, l.category_id, l.annotation, l.occasion, l.year,
                l.featured, l.status, l.sort
         FROM lots l
+        LEFT JOIN categories c ON c.id = l.category_id
         WHERE l.status = 'published'
         <if test="categorySlug != null">
             AND l.category_id = (SELECT id FROM categories WHERE slug = #{categorySlug})
@@ -111,7 +117,7 @@
         <if test="ftsQuery != null">
             AND l.id IN (SELECT lot_id FROM lots_fts WHERE lots_fts MATCH #{ftsQuery})
         </if>
-        ORDER BY l.sort
+        ORDER BY c.sort ASC, c.id ASC, l.sort ASC, l.id ASC
     </select>
 
     <!--

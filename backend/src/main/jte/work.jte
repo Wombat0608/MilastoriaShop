@@ -11,6 +11,9 @@
     contacts = view.contacts(),
     baseUrl = view.baseUrl(),
     path = "/work/" + view.lot().getSlug(),
+    ogType = "product",
+    ogImage = ru.milastoria.view.SiteSeo.ogImage(view.baseUrl(), view.ogImagePath()),
+    ogImageAlt = view.ogImageAlt(),
     extraJsonLd = ru.milastoria.view.SiteSeo.breadcrumbJson(view.contacts(), view.baseUrl(), view.categoryTitle(), view.categorySlug(), view.lot().getTitle(), view.lot().getSlug()),
     content = @`
         <div class="wrap" style="padding-top: 2.5rem;">

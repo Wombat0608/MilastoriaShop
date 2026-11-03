@@ -9,6 +9,9 @@
     contacts = view.contacts(),
     baseUrl = view.baseUrl(),
     path = view.seoPath(),
+    ogType = "website",
+    ogImage = ru.milastoria.view.SiteSeo.ogImage(view.baseUrl(), null),
+    ogImageAlt = "Milastoria — ателье нарядного платья",
     extraJsonLd = "",
     content = @`
         <div class="wrap">

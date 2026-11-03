@@ -19,4 +19,17 @@ public record WorkView(
         SiteContacts contacts,
         String baseUrl
 ) {
+
+    /** Первое фото работы — картинка превью в мессенджерах; null, если фото ещё нет. */
+    public String ogImagePath() {
+        return images == null || images.isEmpty() ? null : images.get(0).getPathFull();
+    }
+
+    public String ogImageAlt() {
+        if (images != null && !images.isEmpty()
+                && images.get(0).getAlt() != null && !images.get(0).getAlt().isBlank()) {
+            return images.get(0).getAlt();
+        }
+        return lot.getTitle();
+    }
 }

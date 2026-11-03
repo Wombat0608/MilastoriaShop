@@ -9,6 +9,9 @@
     contacts = view.contacts(),
     baseUrl = view.baseUrl(),
     path = "/",
+    ogType = "website",
+    ogImage = ru.milastoria.view.SiteSeo.ogImage(view.baseUrl(), view.heroImage()),
+    ogImageAlt = "Milastoria — ателье нарядного платья",
     extraJsonLd = "",
     content = @`
         <section class="hero" id="hero-slider" data-hero-autoplay="30000">

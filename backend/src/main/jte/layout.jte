@@ -5,6 +5,9 @@
 @param String baseUrl
 @param String path
 @param String extraJsonLd
+@param String ogType
+@param String ogImage
+@param String ogImageAlt
 @param gg.jte.Content content
 
 <!DOCTYPE html>
@@ -24,18 +27,18 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 
     <!-- Open Graph / Telegram / VK -->
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="${ogType}">
     <meta property="og:site_name" content="Milastoria">
     <meta property="og:locale" content="ru_RU">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:url" content="${ru.milastoria.view.SiteSeo.absolute(baseUrl, path)}">
-    <meta property="og:image" content="${ru.milastoria.view.SiteSeo.defaultOgImage(baseUrl)}">
-    <meta property="og:image:alt" content="Milastoria — ателье нарядного платья">
+    <meta property="og:image" content="${ogImage}">
+    <meta property="og:image:alt" content="${ogImageAlt}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${title}">
     <meta name="twitter:description" content="${description}">
-    <meta name="twitter:image" content="${ru.milastoria.view.SiteSeo.defaultOgImage(baseUrl)}">
+    <meta name="twitter:image" content="${ogImage}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

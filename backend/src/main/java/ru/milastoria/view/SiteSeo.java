@@ -30,6 +30,11 @@ public final class SiteSeo {
         return absolute(baseUrl, "/content/img/hero.jpg");
     }
 
+    /** OG-картинка страницы: своя (первое фото работы, hero), иначе общий hero. */
+    public static String ogImage(String baseUrl, String path) {
+        return (path == null || path.isBlank()) ? defaultOgImage(baseUrl) : absolute(baseUrl, path);
+    }
+
     /**
      * JSON-LD LocalBusiness + WebSite. Телефон/адрес — из settings через SiteContacts.
      * Возвращаем сырой JSON для {@code <script type="application/ld+json">}.

@@ -1,0 +1,1 @@
+ffmpeg -i ./zolotye_rozy_chernom.mp4 -ss 00:00:01 -vframes 1 output.png

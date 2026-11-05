@@ -1780,3 +1780,90 @@ form.is-submitting .btn--fill {
     max-width: none;
   }
 }
+
+/* ——— Видео лота (карточка лота) ——— */
+
+.admin-videos {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-videos h2 {
+  margin: 0 0 1rem;
+  font-size: 1.15rem;
+}
+
+.admin-video-row {
+  display: flex;
+  gap: 1.15rem;
+  align-items: flex-start;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-video-row:last-child {
+  border-bottom: none;
+}
+
+.admin-video-row__preview video {
+  width: 220px;
+  max-width: 40vw;
+  aspect-ratio: 16 / 9;
+  background: var(--ink);
+  border-radius: 6px;
+  display: block;
+}
+
+.admin-video-row__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-video-row__meta strong {
+  word-break: break-all;
+}
+
+.admin-video-row__facts {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-video-row__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.admin-video-row__actions form {
+  margin: 0;
+}
+
+.admin-btn--danger {
+  color: #a13c2f;
+  border-color: color-mix(in srgb, #a13c2f 45%, var(--line));
+}
+
+.admin-btn--danger:hover {
+  background: #a13c2f;
+  border-color: #a13c2f;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .admin-video-row {
+    flex-wrap: wrap;
+  }
+
+  .admin-video-row__actions {
+    flex-direction: row;
+    width: 100%;
+  }
+}

@@ -12,6 +12,7 @@ import ru.milastoria.domain.Category;
 import ru.milastoria.domain.HeroSlide;
 import ru.milastoria.domain.Lot;
 import ru.milastoria.domain.LotImage;
+import ru.milastoria.domain.LotVideo;
 import ru.milastoria.image.CropRect;
 import ru.milastoria.image.ImageProcessor;
 import ru.milastoria.analytics.AnalyticsTracker;
@@ -28,6 +29,7 @@ import ru.milastoria.util.Fts;
 import ru.milastoria.view.AdminLotsView;
 import ru.milastoria.view.AdminLotRow;
 import ru.milastoria.view.AdminPhotosView;
+import ru.milastoria.view.AdminVideoRow;
 import ru.milastoria.view.AnalyticsView;
 import ru.milastoria.view.CategoriesView;
 import ru.milastoria.view.CategoryFormView;
@@ -48,6 +50,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -180,6 +183,9 @@ public class AdminController {
                 return;
             }
             DictMapper dict = session.getMapper(DictMapper.class);
+            List<AdminVideoRow> videos = lotMapper.findVideosByLotId(lotId).stream()
+                    .map(this::toVideoRow)
+                    .toList();
             render(ctx, "admin/lot-form.jte", LotFormView.edit(
                     lot,
                     session.getMapper(CategoryMapper.class).findAll(),
@@ -189,7 +195,7 @@ public class AdminController {
                     dict.findNamesByKind("occasion"),
                     dict.findNamesByKind("fabric"),
                     dict.findNamesByKind("tag"),
-                    error, notice));
+                    error, notice, videos));
         }
     }
 
@@ -1204,6 +1210,85 @@ public class AdminController {
         ctx.redirect("/admin/lots/" + lotId + "/photos");
     }
 
+    /** Скачивание видео лота: тот же поток, что и в медиатеке (attachment). */
+    public void downloadVideo(Context ctx) {
+        long lotId = Long.parseLong(ctx.pathParam("id"));
+        long videoId = Long.parseLong(ctx.pathParam("videoId"));
+
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            LotMapper mapper = session.getMapper(LotMapper.class);
+            LotVideo video = mapper.findVideosByLotId(lotId).stream()
+                    .filter(v -> v.getId() == videoId)
+                    .findFirst()
+                    .orElse(null);
+            if (video == null) {
+                ctx.status(404).result("Видео не найдено");
+                return;
+            }
+            Path src = resolveContentPath(video.getPath());
+            if (src == null || !Files.isRegularFile(src)) {
+                ctx.status(404).result("Файл на диске отсутствует");
+                return;
+            }
+            String name = src.getFileName().toString().replaceAll("[\\r\\n\"\\\\]", "_");
+            ctx.header("Content-Disposition", "attachment; filename*=UTF-8''"
+                    + URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20"));
+            ctx.contentType("application/octet-stream");
+            ctx.result(Files.readAllBytes(src));
+        } catch (IOException e) {
+            log.error("Ошибка скачивания видео {} лота {}", videoId, lotId, e);
+            ctx.status(500).result("Не удалось скачать файл");
+        }
+    }
+
+    /** Удаление видео: строка lot_videos + сам файл + его постер. */
+    public void deleteVideo(Context ctx) {
+        long lotId = Long.parseLong(ctx.pathParam("id"));
+        long videoId = Long.parseLong(ctx.pathParam("videoId"));
+
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            LotMapper mapper = session.getMapper(LotMapper.class);
+            LotVideo video = mapper.findVideosByLotId(lotId).stream()
+                    .filter(v -> v.getId() == videoId)
+                    .findFirst()
+                    .orElse(null);
+            if (video == null) {
+                ctx.redirect("/admin/lots/" + lotId + "/edit?error=" + urlEncode("Видео не найдено"));
+                return;
+            }
+            mapper.deleteVideoById(videoId);
+            deleteContentFile(video.getPath());
+            deleteContentFile(video.getPosterPath());
+        }
+        ctx.redirect("/admin/lots/" + lotId + "/edit?notice=" + urlEncode("Видео удалено"));
+    }
+
+    private AdminVideoRow toVideoRow(LotVideo video) {
+        String publicPath = video.getPath();
+        String fileName = publicPath == null ? "" :
+                publicPath.substring(publicPath.lastIndexOf('/') + 1);
+        int dot = fileName.lastIndexOf('.');
+        String format = dot >= 0 ? fileName.substring(dot + 1).toUpperCase(Locale.ROOT) : "";
+        long size = -1;
+        Path file = resolveContentPath(publicPath);
+        if (file != null && Files.isRegularFile(file)) {
+            try {
+                size = Files.size(file);
+            } catch (IOException e) {
+                log.warn("Не удалось прочитать размер {}", file, e);
+            }
+        }
+        return new AdminVideoRow(video.getId(), fileName, publicPath,
+                video.getPosterPath(), video.getCaption(), format, size);
+    }
+
+    private Path resolveContentPath(String publicPath) {
+        if (publicPath == null || !publicPath.startsWith("/content/")) {
+            return null;
+        }
+        return contentDir.resolve(publicPath.substring("/content/".length()));
+    }
+
     /** Пересортировка фото: formParam order = "id1,id2,id3" в новом порядке. */
     public void reorderPhotos(Context ctx) {
         long lotId = Long.parseLong(ctx.pathParam("id"));
@@ -1381,11 +1466,15 @@ public class AdminController {
                 dict.findNamesByKind("occasion"),
                 dict.findNamesByKind("fabric"),
                 dict.findNamesByKind("tag"),
-                error, null, mediaIds);
+                error, null, mediaIds, List.of());
     }
 
     private LotFormView draftLotForm(SqlSession session, Context ctx, Lot draft, DictSelection sel, String error) {
         DictMapper dict = session.getMapper(DictMapper.class);
+        List<AdminVideoRow> videos = session.getMapper(LotMapper.class)
+                .findVideosByLotId(draft.getId()).stream()
+                .map(this::toVideoRow)
+                .toList();
         return LotFormView.edit(
                 draft,
                 session.getMapper(CategoryMapper.class).findAll(),
@@ -1393,7 +1482,7 @@ public class AdminController {
                 dict.findNamesByKind("occasion"),
                 dict.findNamesByKind("fabric"),
                 dict.findNamesByKind("tag"),
-                error, null);
+                error, null, videos);
     }
 
     private void replaceTags(SqlSession session, LotMapper mapper, long lotId, String tagsRaw) {

@@ -21,7 +21,8 @@ public record LotFormView(
         List<String> tagOptions,
         String error,
         String notice,
-        String mediaIds
+        String mediaIds,
+        List<AdminVideoRow> videos
 ) {
     public boolean creating() {
         return lot == null;
@@ -80,7 +81,7 @@ public record LotFormView(
                                      String mediaIds) {
         return new LotFormView(null, categories,
                 List.of(), List.of(), List.of(),
-                occasionOptions, fabricOptions, tagOptions, error, null, mediaIds);
+                occasionOptions, fabricOptions, tagOptions, error, null, mediaIds, List.of());
     }
 
     public static LotFormView edit(ru.milastoria.domain.Lot lot,
@@ -92,8 +93,9 @@ public record LotFormView(
                                    List<String> fabricOptions,
                                    List<String> tagOptions,
                                    String error,
-                                   String notice) {
+                                   String notice,
+                                   List<AdminVideoRow> videos) {
         return new LotFormView(lot, categories, occasions, fabrics, tags,
-                occasionOptions, fabricOptions, tagOptions, error, notice, null);
+                occasionOptions, fabricOptions, tagOptions, error, notice, null, videos);
     }
 }

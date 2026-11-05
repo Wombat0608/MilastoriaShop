@@ -218,5 +218,39 @@
                 <a class="btn btn--line" href="/admin">К списку</a>
             </div>
         </form>
+
+        @if(!view.creating())
+            <section class="admin-videos">
+                <h2>Видео (${view.videos().size()})</h2>
+                @if(view.videos().isEmpty())
+                    <p class="admin-hint">Видео не прикреплены. Добавить можно из медиатеки: «Из медиатеки» → выбрать видео → прикрепить к лоту.</p>
+                @endif
+                @for(var v : view.videos())
+                    <div class="admin-video-row">
+                        <div class="admin-video-row__preview">
+                            @if(v.posterPath() != null)
+                                <video src="${v.publicPath()}" controls preload="metadata" poster="${v.posterPath()}"></video>
+                            @else
+                                <video src="${v.publicPath()}" controls preload="metadata"></video>
+                            @endif
+                        </div>
+                        <div class="admin-video-row__meta">
+                            <strong>${v.fileName()}</strong>
+                            <span class="admin-video-row__facts">${v.format()} · ${v.sizeLabel()}</span>
+                            @if(v.caption() != null && !v.caption().isBlank())
+                                <span class="admin-hint">${v.caption()}</span>
+                            @endif
+                        </div>
+                        <div class="admin-video-row__actions">
+                            <a class="btn btn--line" href="/admin/lots/${view.lot().getId()}/videos/${v.id()}/download">Скачать</a>
+                            <form method="post" action="/admin/lots/${view.lot().getId()}/videos/${v.id()}/delete"
+                                  onsubmit="return confirm('Удалить видео?');">
+                                <button type="submit" class="btn btn--line admin-btn--danger">Удалить</button>
+                            </form>
+                        </div>
+                    </div>
+                @endfor
+            </section>
+        @endif
     `
 )

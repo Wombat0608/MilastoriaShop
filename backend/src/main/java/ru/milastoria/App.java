@@ -218,6 +218,8 @@ public class App {
         app.post("/admin/lots/{id}/photos", admin::uploadPhoto);
         app.post("/admin/lots/{id}/photos/reorder", admin::reorderPhotos);
         app.post("/admin/lots/{id}/photos/{imageId}/delete", admin::deletePhoto);
+        app.get("/admin/lots/{id}/videos/{videoId}/download", admin::downloadVideo);
+        app.post("/admin/lots/{id}/videos/{videoId}/delete", admin::deleteVideo);
 
         app.start(port);
     }

@@ -38,7 +38,7 @@ class LotFormViewTest {
         var lot = new ru.milastoria.domain.Lot();
         lot.setId(9);
         LotFormView view = LotFormView.edit(lot, List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), List.of(), null, null);
+                List.of(), List.of(), List.of(), null, null, List.of());
         assertFalse(view.creating());
         assertFalse(view.attachingMedia());
         assertEquals("/admin/lots/9", view.action());

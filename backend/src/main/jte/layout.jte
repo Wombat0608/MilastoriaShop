@@ -1,5 +1,6 @@
 @param String title
 @param String description
+@param String robots
 @param String activeNav
 @param ru.milastoria.view.SiteContacts contacts
 @param String baseUrl
@@ -17,7 +18,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${title}</title>
     <meta name="description" content="${description}">
-    <meta name="robots" content="index, follow">
+    <meta name="robots" content="${robots}">
     <meta name="author" content="Milastoria">
     <meta name="theme-color" content="#f6f0e6">
     <link rel="canonical" href="${ru.milastoria.view.SiteSeo.absolute(baseUrl, path)}">

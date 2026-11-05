@@ -2013,3 +2013,353 @@ p {
     z-index: 5;
   }
 }
+
+/* ——— Gallery concept /gallery-v2 (слайд 4 деки редизайна) ———
+   Пилюли-чипы со счётчиками и поиском в одном ряду (липкая панель),
+   асимметричная сетка: каждая пятая карточка крупная 2×2, остальные 1×1. */
+
+.g2-head {
+  padding: 2.75rem 0 1.75rem;
+}
+
+.g2-head__title {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(2.25rem, 4.5vw, 3.45rem);
+  line-height: 1.06;
+  margin: 0.35rem 0 0;
+}
+
+/* Липкая панель чипов при скролле — под шапкой сайта */
+.g2-chips-bar {
+  position: sticky;
+  top: 82px;
+  z-index: 30;
+  background: rgba(246, 240, 230, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 0.7rem 0;
+  margin-bottom: 1.65rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.g2-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.g2-chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  height: 2.55rem;
+  padding: 0 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+.g2-chip:hover {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.g2-chip:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.g2-chip.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* Поиск в ряду чипов: та же пилюля, без label — placeholder + лупа внутри */
+.g2-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 2.55rem;
+  min-width: 15.5rem;
+  margin-left: auto;
+  padding: 0 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.g2-search:hover {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+
+.g2-search:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 18%, transparent);
+}
+
+.g2-search__icon {
+  flex-shrink: 0;
+  color: var(--ink-faint);
+}
+
+.g2-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.g2-search__input::placeholder {
+  color: var(--ink-faint);
+}
+
+.g2-search__input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+/* Асимметричная сетка: 4 колонки, каждая пятая карточка 2×2 */
+.g2-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  padding-bottom: 4.5rem;
+}
+
+.g2-card {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4.17 / 4.44;
+  background: var(--paper-dim);
+}
+
+.g2-card--hero {
+  grid-column: span 2;
+  grid-row: span 2;
+  aspect-ratio: auto;
+  min-height: 0;
+}
+
+.g2-card > a {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.g2-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.7s var(--ease);
+}
+
+.g2-card:hover img {
+  transform: scale(1.03);
+}
+
+.g2-card__video {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(24, 18, 12, 0.55);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  backdrop-filter: blur(4px);
+}
+
+.g2-card__eyebrow {
+  display: block;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.g2-card__cta {
+  display: inline-block;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 0.15rem;
+}
+
+/* Плашка заголовка мелкой карточки — светлая полоса по низу фото */
+.g2-card__plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 0.85rem 1.15rem;
+  background: rgba(255, 252, 246, 0.92);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.02rem;
+  line-height: 1.25;
+  transition: opacity 0.3s var(--ease);
+}
+
+/* Крупная карточка: подпись всегда видна — категория, название, переход */
+.g2-card__hero-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 3.75rem 1.75rem 1.75rem;
+  background: linear-gradient(to top, rgba(24, 20, 15, 0.72) 0%, rgba(24, 20, 15, 0.28) 55%, transparent 100%);
+  color: var(--white);
+  transition: opacity 0.3s var(--ease);
+}
+
+.g2-card__hero-label h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1.55rem, 2.6vw, 2.25rem);
+  line-height: 1.12;
+  margin: 0.45rem 0 0.85rem;
+}
+
+/* HOVER-СОСТОЯНИЕ концепта: карточка раскрывает задачу и ведёт в историю работы */
+.g2-card__hover {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  background: rgba(24, 20, 15, 0.78);
+  color: var(--white);
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+}
+
+.g2-card__hover h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 300;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin: 0.5rem 0 0.65rem;
+}
+
+.g2-card--hero .g2-card__hover h3 {
+  font-size: clamp(1.55rem, 2.6vw, 2.1rem);
+}
+
+.g2-card__hover p {
+  margin: 0 0 1.15rem;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: rgba(255, 252, 246, 0.82);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.g2-card:hover .g2-card__hover,
+.g2-card:focus-within .g2-card__hover {
+  opacity: 1;
+}
+
+.g2-card:hover .g2-card__plate,
+.g2-card:hover .g2-card__hero-label,
+.g2-card:focus-within .g2-card__plate,
+.g2-card:focus-within .g2-card__hero-label {
+  opacity: 0;
+}
+
+.g2-empty {
+  grid-column: 1 / -1;
+  padding: 3.5rem 0;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 1024px) {
+  .g2-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .g2-card {
+    aspect-ratio: 3 / 4;
+  }
+
+  .g2-card--hero {
+    grid-column: span 2;
+    grid-row: span 1;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 640px) {
+  .g2-head {
+    padding: 1.85rem 0 1.25rem;
+  }
+
+  .g2-search {
+    margin-left: 0;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .g2-grid {
+    gap: 0.65rem;
+    padding-bottom: 3rem;
+  }
+
+  .g2-card--hero {
+    aspect-ratio: 4 / 5;
+  }
+
+  .g2-card__hero-label {
+    padding: 2.5rem 1.15rem 1.15rem;
+  }
+
+  .g2-card__plate {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.92rem;
+  }
+
+  .g2-card__hover {
+    padding: 1.15rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .g2-card img,
+  .g2-card__hover,
+  .g2-card__plate,
+  .g2-card__hero-label,
+  .g2-chip,
+  .g2-search {
+    transition: none;
+  }
+}

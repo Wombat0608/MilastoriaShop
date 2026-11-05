@@ -5,6 +5,7 @@
 @template.layout(
     title = "Milastoria — ателье нарядного детского и женского платья | Кубинка",
     description = "Ателье нарядных детских и женских платьев Milastoria: галерея работ, Family Look, пошив на заказ по меркам, подбор тканей. Кубинка, Московская область.",
+    robots = "index, follow",
     activeNav = "home",
     contacts = view.contacts(),
     baseUrl = view.baseUrl(),

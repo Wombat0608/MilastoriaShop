@@ -5,6 +5,7 @@
 @template.layout(
     title = view.title() + " — Milastoria",
     description = view.lead(),
+    robots = "index, follow",
     activeNav = "gallery",
     contacts = view.contacts(),
     baseUrl = view.baseUrl(),

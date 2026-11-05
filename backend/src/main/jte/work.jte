@@ -7,6 +7,7 @@
 @template.layout(
     title = (view.lot().getMetaTitle() != null ? view.lot().getMetaTitle() : view.lot().getTitle() + " — Milastoria"),
     description = (view.lot().getMetaDescription() != null ? view.lot().getMetaDescription() : view.lot().getAnnotation()),
+    robots = "index, follow",
     activeNav = "gallery",
     contacts = view.contacts(),
     baseUrl = view.baseUrl(),

@@ -137,6 +137,7 @@ public class App {
 
         app.get("/", site::home);
         app.get("/gallery", site::gallery);
+        app.get("/gallery-v2", site::galleryV2);
         app.get("/work/{slug}", site::work);
         // Старые URL прежнего сайта — permanent redirect (иначе Google держит 404)
         app.get("/catalog", ctx -> ctx.redirect("/gallery", io.javalin.http.HttpStatus.MOVED_PERMANENTLY));

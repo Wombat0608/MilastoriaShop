@@ -19,6 +19,9 @@ import ru.milastoria.util.Fts;
 import ru.milastoria.domain.Slogan;
 import ru.milastoria.view.CategoryOption;
 import ru.milastoria.view.CategoryTile;
+import ru.milastoria.view.ConceptCard;
+import ru.milastoria.view.ConceptChip;
+import ru.milastoria.view.ConceptGalleryView;
 import ru.milastoria.view.ContactLine;
 import ru.milastoria.view.GalleryView;
 import ru.milastoria.view.HomeView;
@@ -240,6 +243,49 @@ public class SiteController {
         }
     }
 
+    /**
+     * Страница-концепт новой галереи (/gallery-v2): чипы со счётчиками,
+     * поиск в ряду чипов, асимметричная сетка. Старая /gallery не меняется.
+     */
+    public void galleryV2(Context ctx) {
+        String categorySlug = ctx.queryParam("category");
+        String query = normalize(ctx.queryParam("q"));
+        String ftsQuery = Fts.toMatchExpression(query);
+
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            CategoryMapper categoryMapper = session.getMapper(CategoryMapper.class);
+            LotMapper lotMapper = session.getMapper(LotMapper.class);
+
+            List<Category> categories = categoryMapper.findAll();
+
+            // Счётчики нужны всегда: и для чипов, и для лида «N работа · K направлений».
+            // Категория у лота одна — сумма по категориям и есть всего опубликованных.
+            List<ConceptChip> chips = new ArrayList<>();
+            int totalPublished = 0;
+            List<Integer> counts = new ArrayList<>();
+            for (Category cat : categories) {
+                int count = lotMapper.countPublishedByCategory(cat.getId());
+                counts.add(count);
+                totalPublished += count;
+            }
+            chips.add(new ConceptChip(null, "ВСЕ", totalPublished, categorySlug == null));
+            for (int i = 0; i < categories.size(); i++) {
+                Category cat = categories.get(i);
+                chips.add(new ConceptChip(cat.getSlug(),
+                        ConceptGalleryView.shortLabel(cat.getSlug(), cat.getTitle()),
+                        counts.get(i),
+                        cat.getSlug().equals(categorySlug)));
+            }
+
+            List<ConceptCard> lots = lotMapper.findPublished(categorySlug, null, ftsQuery).stream()
+                    .map(lot -> toConceptCard(lotMapper, lot, categories))
+                    .toList();
+
+            render(ctx, "gallery-v2.jte",
+                    new ConceptGalleryView(chips, query, lots, loadSiteContacts(session), baseUrl));
+        }
+    }
+
     public void work(Context ctx) {
         String slug = ctx.pathParam("slug");
 
@@ -295,6 +341,18 @@ public class SiteController {
         String cover = images.isEmpty() ? null : images.get(0).getPathThumb();
         boolean hasVideo = !lotMapper.findVideosByLotId(lot.getId()).isEmpty();
         return new LotCard(lot.getSlug(), lot.getTitle(), lot.getAnnotation(), cover, hasVideo);
+    }
+
+    private ConceptCard toConceptCard(LotMapper lotMapper, Lot lot, List<Category> categories) {
+        var images = lotMapper.findImagesByLotId(lot.getId());
+        String cover = images.isEmpty() ? null : images.get(0).getPathThumb();
+        boolean hasVideo = !lotMapper.findVideosByLotId(lot.getId()).isEmpty();
+        String categoryLabel = categories.stream()
+                .filter(c -> c.getId() == lot.getCategoryId())
+                .findFirst()
+                .map(c -> ConceptGalleryView.shortLabel(c.getSlug(), c.getTitle()))
+                .orElse("");
+        return new ConceptCard(lot.getSlug(), lot.getTitle(), lot.getAnnotation(), cover, hasVideo, categoryLabel);
     }
 
     /** Случайный включённый H1-слоган. В Java — детерминированнее, чем ORDER BY RANDOM() в SQLite. */

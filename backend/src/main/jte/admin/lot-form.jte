@@ -237,15 +237,15 @@
                         <div class="admin-video-row__meta">
                             <strong>${v.fileName()}</strong>
                             <span class="admin-video-row__facts">${v.format()} · ${v.sizeLabel()}</span>
-                            <form class="admin-video-row__caption" method="post"
+                            <form id="caption-form-${v.id()}" class="admin-video-row__caption" method="post"
                                   action="/admin/lots/${view.lot().getId()}/videos/${v.id()}">
                                 <input type="text" name="caption"
                                        value="${v.caption() != null ? v.caption() : ""}"
                                        placeholder="Подпись видео">
-                                <button type="submit" class="btn btn--line">Сохранить</button>
                             </form>
                         </div>
                         <div class="admin-video-row__actions">
+                            <button type="submit" form="caption-form-${v.id()}" class="btn btn--line">Сохранить</button>
                             <a class="btn btn--line" href="/admin/lots/${view.lot().getId()}/videos/${v.id()}/download">Скачать</a>
                             <form method="post" action="/admin/lots/${view.lot().getId()}/videos/${v.id()}/delete"
                                   onsubmit="return confirm('Удалить видео?');">

@@ -1869,18 +1869,10 @@ form.is-submitting .btn--fill {
 }
 
 .admin-video-row__caption {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
   margin-top: 0.35rem;
   max-width: 34rem;
 }
 
 .admin-video-row__caption input {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-video-row__caption .btn {
-  flex-shrink: 0;
+  width: 100%;
 }

@@ -1795,6 +1795,9 @@ form.is-submitting .btn--fill {
 }
 
 .admin-video-row {
+  /* Плеер задаёт эталонную высоту строки: колонка кнопок равна ему */
+  --player-w: 220px;
+  --player-h: calc(var(--player-w) * 9 / 16);
   display: flex;
   gap: 1.15rem;
   align-items: flex-start;
@@ -1807,9 +1810,8 @@ form.is-submitting .btn--fill {
 }
 
 .admin-video-row__preview video {
-  width: 220px;
-  max-width: 40vw;
-  aspect-ratio: 16 / 9;
+  width: var(--player-w);
+  height: var(--player-h);
   background: var(--ink);
   border-radius: 6px;
   display: block;
@@ -1834,16 +1836,33 @@ form.is-submitting .btn--fill {
   text-transform: uppercase;
 }
 
+/* Колонка действий — ровно по высоте плеера; кнопки 24px одной ширины */
 .admin-video-row__actions {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 0.5rem;
   align-items: stretch;
   flex-shrink: 0;
+  height: var(--player-h);
 }
 
 .admin-video-row__actions form {
   margin: 0;
+  display: flex;
+}
+
+.admin-video-row__actions .btn,
+.admin-video-row__actions form {
+  width: 100%;
+}
+
+.admin-video-row__actions .btn {
+  height: 24px;
+  min-height: 24px;
+  padding: 0 0.65rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
 }
 
 .admin-btn--danger {
@@ -1860,11 +1879,20 @@ form.is-submitting .btn--fill {
 @media (max-width: 640px) {
   .admin-video-row {
     flex-wrap: wrap;
+    --player-w: min(220px, 40vw);
   }
 
   .admin-video-row__actions {
     flex-direction: row;
     width: 100%;
+    height: auto;
+    justify-content: flex-start;
+  }
+
+  .admin-video-row__actions .btn,
+  .admin-video-row__actions form {
+    width: auto;
+    flex: 1;
   }
 }
 

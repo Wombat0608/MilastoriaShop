@@ -1263,6 +1263,26 @@ public class AdminController {
         ctx.redirect("/admin/lots/" + lotId + "/edit?notice=" + urlEncode("Видео удалено"));
     }
 
+    /** Сохранение подписи видео из карточки лота; пустая строка очищает подпись. */
+    public void updateVideoCaption(Context ctx) {
+        long lotId = Long.parseLong(ctx.pathParam("id"));
+        long videoId = Long.parseLong(ctx.pathParam("videoId"));
+        String caption = ctx.formParam("caption");
+        caption = (caption == null || caption.isBlank()) ? null : caption.trim();
+
+        try (SqlSession session = sqlSessionFactory.openSession(true)) {
+            LotMapper mapper = session.getMapper(LotMapper.class);
+            boolean owned = mapper.findVideosByLotId(lotId).stream()
+                    .anyMatch(v -> v.getId() == videoId);
+            if (!owned) {
+                ctx.redirect("/admin/lots/" + lotId + "/edit?error=" + urlEncode("Видео не найдено"));
+                return;
+            }
+            mapper.updateVideoCaption(videoId, caption);
+        }
+        ctx.redirect("/admin/lots/" + lotId + "/edit?notice=" + urlEncode("Подпись сохранена"));
+    }
+
     private AdminVideoRow toVideoRow(LotVideo video) {
         String publicPath = video.getPath();
         String fileName = publicPath == null ? "" :

@@ -237,9 +237,13 @@
                         <div class="admin-video-row__meta">
                             <strong>${v.fileName()}</strong>
                             <span class="admin-video-row__facts">${v.format()} · ${v.sizeLabel()}</span>
-                            @if(v.caption() != null && !v.caption().isBlank())
-                                <span class="admin-hint">${v.caption()}</span>
-                            @endif
+                            <form class="admin-video-row__caption" method="post"
+                                  action="/admin/lots/${view.lot().getId()}/videos/${v.id()}">
+                                <input type="text" name="caption"
+                                       value="${v.caption() != null ? v.caption() : ""}"
+                                       placeholder="Подпись видео">
+                                <button type="submit" class="btn btn--line">Сохранить</button>
+                            </form>
                         </div>
                         <div class="admin-video-row__actions">
                             <a class="btn btn--line" href="/admin/lots/${view.lot().getId()}/videos/${v.id()}/download">Скачать</a>

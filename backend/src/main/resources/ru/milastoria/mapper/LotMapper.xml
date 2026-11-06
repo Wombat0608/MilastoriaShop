@@ -230,6 +230,10 @@
         DELETE FROM lot_videos WHERE id = #{id}
     </delete>
 
+    <update id="updateVideoCaption">
+        UPDATE lot_videos SET caption = #{caption} WHERE id = #{id}
+    </update>
+
     <select id="findTagNamesByLotId" resultType="string">
         SELECT t.name
         FROM tags t

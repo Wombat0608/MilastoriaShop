@@ -220,6 +220,7 @@ public class App {
         app.post("/admin/lots/{id}/photos/{imageId}/delete", admin::deletePhoto);
         app.get("/admin/lots/{id}/videos/{videoId}/download", admin::downloadVideo);
         app.post("/admin/lots/{id}/videos/{videoId}/delete", admin::deleteVideo);
+        app.post("/admin/lots/{id}/videos/{videoId}", admin::updateVideoCaption);
 
         app.start(port);
     }

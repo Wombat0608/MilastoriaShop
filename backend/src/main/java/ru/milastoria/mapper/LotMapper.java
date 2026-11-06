@@ -74,6 +74,9 @@ public interface LotMapper {
 
     void deleteVideoById(@Param("id") long id);
 
+    /** Подпись видео (карточка лота в админке); null — очистить. */
+    void updateVideoCaption(@Param("id") long id, @Param("caption") String caption);
+
     List<String> findTagNamesByLotId(@Param("lotId") long lotId);
 
     void upsertTag(@Param("name") String name);
